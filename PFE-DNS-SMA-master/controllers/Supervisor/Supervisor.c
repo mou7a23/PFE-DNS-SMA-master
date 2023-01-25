@@ -29,7 +29,7 @@
 #define NB_EPUCK 8
 #define ARENA_SIZE 100
 #define RANGE_DETECTION 0.36
-#define RANDOM false
+#define RANDOM true
 #define R_FoV 0.5
 
 #define MSG_SIZE 128

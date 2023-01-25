@@ -30,8 +30,8 @@ public class PatternFormation extends Robot {
 	private double detection_threshold=80;
 	private double speed;
 	// private String robID;
-           double alpha = 0; // l'angle génératrice du vecteur F
-           double omega = 30; // l'angle de dead ahead; zone 'C'
+           double alpha = 0; // l'angle génératrice du vecteur F en radians
+           double omega = 1.9; // l'angle de dead ahead en radians; zone 'C'
            double rA = 0.3; // le rayon de la zone A
            double x, y, theta;
            // List of neighbours
@@ -39,7 +39,6 @@ public class PatternFormation extends Robot {
            
 	public PatternFormation() {
 		timeStep = 64;  // set the control time step
-
 
 		// Sensors initialization 
 		// IR distance sensors
@@ -177,7 +176,6 @@ public class PatternFormation extends Robot {
   	    String[] robots_data = message.split(";", 11); // NB_EPUCK = 10
   	    String[] robot_data;
   	    this.voisins.clear();
-  	       //for (int iter = 0; iter < robots_data.length - 1; iter++){
 	     for (String str_data:robots_data){
         	         robot_data = str_data.split(",", 4);
                     if(!robot_data[0].equals("")){
@@ -186,7 +184,6 @@ public class PatternFormation extends Robot {
                     	 }     
                     }
                   }
-                 // System.out.println("All Neighbours are added");
   	    }  
 	}
 	
@@ -206,43 +203,34 @@ public class PatternFormation extends Robot {
   	    }
 	}
            
-	
-           double calcul_angle(double x, double y, double x_voisin, double y_voisin){
-           alpha = alpha * Math.PI / 180;
-              return Math.cos(alpha) * ((x_voisin -x) / Math.sqrt((x_voisin -x)*(x_voisin -x)+(y_voisin -y)*(y_voisin -y))) + Math.sin(alpha) * ((y_voisin - y) / Math.sqrt((x_voisin -x)*(x_voisin -x)+(y_voisin -y)*(y_voisin -y)));
-           }
            
-           public void to_action(){
+    public void to_action(){
                  double angleF = Math.toRadians(this.alpha);
                  double angleC = Math.toRadians(this.omega);
                  boolean activeA = false, activeB = false, activeC = false, activeD = false;
                  double aux, aux_cos, aux_sin; 
-                 // boolean activeA l'action de l'évitement d'obstacle est géré par les capteurs IR;  
+                 // Decision  
                  for(Voisin voisin: this.voisins){
-                     //System.out.println("Distance au voisin "+voisin.get_name()+" est" + Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_y()-this.y)*(voisin.get_y()-this.y)));
                      if(Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_y()-this.y)*(voisin.get_y()-this.y)) < rA){
                          activeA = true;
-                         // System.out.println("Distance au voisin "+voisin.get_name()+" est" + Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_x()-this.y)*(voisin.get_y()-this.y)));
                      } else {
                      if(voisin.cos_angle(this.x, this.y) > Math.cos(angleF+angleC)){
                         // cosX > cosY => X < Y
                         activeC = true;
-                        // System.out.println("cos(theta) = "+voisin.cos_angle(this.x, this.y) + " > "+Math.cos(angleF+angleC)+": Zone C activated by "+voisin.get_name());
                      } else {
                      aux_cos = voisin.cos_angle(this.x, this.y);
                      aux_sin = voisin.sin_angle(this.x, this.y);
                      aux = aux_cos * Math.cos(angleF) + aux_sin * Math.sin(angleF);
                      if(aux > 0){
                        activeB = true;
-                       // System.out.println("cos(theta) = "+voisin.cos_angle(this.x, this.y)+": Zone B activated by "+voisin.get_name());
                        }
                        else {
                          activeD = true;
-                         // System.out.println("cos(theta) = "+voisin.cos_angle(this.x, this.y)+": Zone D activated by "+voisin.get_name());
                          }
                        }
-                     } // close if(activeA){} else{}
+                     }
                  }
+				// to Action
                 if(activeA){
                    avoid_collision();
                 } else {
@@ -256,18 +244,19 @@ public class PatternFormation extends Robot {
                                backwards();
                           } else {
                             stop();
-                            //System.out.println(ConsoleColors.RED+"No zone is activated: Stop"+ConsoleColors.RESET);
                           }
                        }
                  }
               }   
            
            
-           }
+    }
            
 
            public void stop(){
+				System.out.println(ConsoleColors.PURPLE+"Decision: Stop"+ConsoleColors.RESET);
 				move(0, 0);
+				
            }
            
 
@@ -288,38 +277,38 @@ public class PatternFormation extends Robot {
            
            
            public void avoid_collision(){
-                System.out.println("Decision: Avoid Collision Behaviour");
-				double gamma_avoid = Math.PI; // ça revient à inverser le sens
+                System.out.println(ConsoleColors.RED+"Decision: Avoid Collision Behaviour"+ConsoleColors.RESET);
 				double epsilon = 0.15, speed_reducer = 10; // paramètre à régler empiriquement.
 				Voisin voisin = get_closest_neighbor();
 				double r_x = voisin.get_x() - this.x;
 				double r_y = voisin.get_y() - y;
 				double vitesse = Math.sqrt(r_x*r_x+r_y*r_y);
 				vitesse = vitesse * 100; // la distance obtenue est calculé en [m], on la transforme en [cm]
-				if(this.theta < Math.atan2(r_y, r_x) - epsilon || this.theta > Math.atan2(r_y, r_x) + epsilon){
+				if(Math.abs(this.theta - Math.atan2(r_y, r_x)) < epsilon){
 					move(speed/speed_reducer, -speed/speed_reducer);
 				} else {
 					move(vitesse, vitesse);
 					if(vitesse<20){
-						moveRandomly();
+						move(speed, speed);
 					}
 				}
                 
            }
 
            public void alter_course(){
+			System.out.println(ConsoleColors.GREEN+"Decision: Alter Course Behaviour"+ConsoleColors.RESET);
 			double epsilon = 0.15, speed_reducer = 5; // paramètre à régler empiriquement.
-			if(this.theta < (alpha + Math.PI) - epsilon || this.theta > (alpha + Math.PI) + epsilon){ // on cherche l'orientation du vecteur perpencutaire à F
+			if(Math.abs(this.theta - (alpha + Math.PI)) < epsilon){ // on cherche l'orientation du vecteur perpencutaire à F
 					move(speed/speed_reducer, -speed/speed_reducer);
 				}
 			else {
-				moveRandomly();
+				move(speed, speed);
 			}
-        	System.out.println("Decision: Alter Course Behaviour");
            }
 
 
            public void forward(){
+			System.out.println(ConsoleColors.YELLOW+"Decision: Forward"+ConsoleColors.RESET);
 			double max_ps = -9999.0;
 			double epsilon = 0.15, speed_reducer = 5; // paramètre à régler empiriquement.
 			for(Voisin voisin: this.voisins){
@@ -328,21 +317,20 @@ public class PatternFormation extends Robot {
 					max_ps = produit_scaler;	
 				}
 			}
-			if(this.theta < alpha - epsilon || this.theta > alpha + epsilon){
+			if(Math.abs(this.theta - alpha) < epsilon){
 					move(speed/speed_reducer, -speed/speed_reducer);
 				}
 			else {
-				// moveRandomly();
 				move(max_ps, max_ps);
 				if(max_ps < 20){
 					move(speed, speed);
 				}
 			}
-			System.out.println("Decision: Forward");
            }
 
 
            public void backwards(){
+            System.out.println(ConsoleColors.BLUE+"Decision: Backwards"+ConsoleColors.RESET);
 			double min_ps = 9999.0;
 			double epsilon = 0.15, speed_reducer = 5; // paramètre à régler empiriquement.
 			for(Voisin voisin: this.voisins){
@@ -351,23 +339,21 @@ public class PatternFormation extends Robot {
 					min_ps = produit_scaler;	
 				}
 			}
-			if(this.theta < alpha - epsilon || this.theta > alpha + epsilon){
+			if(Math.abs(this.theta - alpha) < epsilon){
 					move(speed/speed_reducer, -speed/speed_reducer);
 				}
 			else {
 				move(min_ps*100, min_ps*100);
-				if(min_ps > -20){
+				if(min_ps * 100 > -20){
 					move(-speed, -speed);
 				}
 			}
-            System.out.println("Decision: Backwards");
            }
            
 	private void moveRandomly() {
 		double left=50;
 		double right=50;
 		move(left,right);
-		
 	}
 
 	private boolean checkAndAvoidObstacle() {
