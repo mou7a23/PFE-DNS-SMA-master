@@ -15,7 +15,6 @@ import com.cyberbotics.webots.controller.Motor;
 import com.cyberbotics.webots.controller.Receiver;
 import com.cyberbotics.webots.controller.Robot;
 import java.lang.Math;
-// import Voisin;
 
 public class PatternFormation extends Robot {
 	private int timeStep;
@@ -29,13 +28,16 @@ public class PatternFormation extends Robot {
 
 	private double detection_threshold=80;
 	private double speed;
+	private double rotate;
 	// private String robID;
-           double alpha = 0; // l'angle génératrice du vecteur F en radians
-           double omega = 1.9; // l'angle de dead ahead en radians; zone 'C'
-           double rA = 0.3; // le rayon de la zone A
-           double x, y, theta;
-           // List of neighbours
-           private List<Voisin> voisins = new ArrayList<Voisin>();
+    double alpha = Math.toRadians(0); // l'angle génératrice du vecteur F en radians
+	double deadAheadWidth = Math.toRadians(15); // l'angle de dead ahead en radians; zone 'C'
+	double r_avoid = 0.3; // le rayon de la zone A
+	double gamma_avoid = Math.toRadians(100);
+	double epsilon = Math.toRadians(5); // paramètre à régler empiriquement.
+	double x, y, theta;
+	// List of neighbours
+	private List<Voisin> voisins = new ArrayList<Voisin>();
            
 	public PatternFormation() {
 		timeStep = 64;  // set the control time step
@@ -62,7 +64,6 @@ public class PatternFormation extends Robot {
 		emitter=getEmitter("emitter");
 		receiver=getReceiver("receiver");
 		receiver.enable(timeStep);
-
 
 		// Actuators initialization
 		// Motors
@@ -171,6 +172,7 @@ public class PatternFormation extends Robot {
            }
 	}
 	
+
 	public void set_voisins(String message){
                if(message != null){
   	    String[] robots_data = message.split(";", 11); // NB_EPUCK = 10
@@ -187,6 +189,7 @@ public class PatternFormation extends Robot {
   	    }  
 	}
 	
+
 	protected void afficher_voisins(){
   	    String[] robot_data;
   	    double dist;
@@ -203,30 +206,25 @@ public class PatternFormation extends Robot {
   	    }
 	}
            
-           
+    // Decision To Action     
     public void to_action(){
-                 double angleF = Math.toRadians(this.alpha);
-                 double angleC = Math.toRadians(this.omega);
+		System.out.println("Robot: " + this.getName()+"("+this.x+","+this.y+")");
                  boolean activeA = false, activeB = false, activeC = false, activeD = false;
-                 double aux, aux_cos, aux_sin; 
                  // Decision  
                  for(Voisin voisin: this.voisins){
-                     if(Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_y()-this.y)*(voisin.get_y()-this.y)) < rA){
-                         activeA = true;
-                     } else {
-                     if(voisin.cos_angle(this.x, this.y) > Math.cos(angleF+angleC)){
-                        // cosX > cosY => X < Y
-                        activeC = true;
-                     } else {
-                     aux_cos = voisin.cos_angle(this.x, this.y);
-                     aux_sin = voisin.sin_angle(this.x, this.y);
-                     aux = aux_cos * Math.cos(angleF) + aux_sin * Math.sin(angleF);
-                     if(aux > 0){
-                       activeB = true;
+                     if(Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_y()-this.y)*(voisin.get_y()-this.y)) < r_avoid){
+                         activeA = true; // {1, 3, 5, 7, 9, 11, 13, 15} ==> AvoidCollision
+                     } else { // {0, 2, 4, 6, 8, 10, 12, 14}
+                     if(Math.atan2(voisin.get_x() - this.x, voisin.get_y() - this.y) < deadAheadWidth){
+                        activeC = true; // {4, 6, 12, 14} ==> AlterCourse
+                     } else { // {0, 2, 8, 10}
+                     if(Math.abs(Math.atan2(voisin.get_x() - this.x, voisin.get_y() - this.y)) < Math.PI/2){
+                       activeB = true; // {2, 10} ==> Forward
                        }
                        else {
-                         activeD = true;
+                         activeD = true; // {8} ==> Backwards
                          }
+						// Le {0} est lorsque le robot n'a pas de voisin
                        }
                      }
                  }
@@ -248,114 +246,105 @@ public class PatternFormation extends Robot {
                        }
                  }
               }   
-           
-           
     }
-           
 
-           public void stop(){
+	
+           
+    public Voisin get_closest_neighbor(){
+		double dist_min = 10000, dist;
+		Voisin closest_neighbor = new Voisin();
+		for(Voisin voisin: voisins){
+				dist = Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_y()-this.y)*(voisin.get_y()-this.y));
+				if(dist_min > dist){
+					closest_neighbor = voisin;
+					dist_min = dist;
+				}  
+		}
+		if(dist_min > 1000)
+			return null; // n'a pas de voisins
+		return closest_neighbor;
+    }
+	
+	// Actions
+
+    public void stop(){
 				System.out.println(ConsoleColors.PURPLE+"Decision: Stop"+ConsoleColors.RESET);
-				move(0, 0);
-				
-           }
-           
-
-           public Voisin get_closest_neighbor(){
-                 double dist_min = 10000, dist;
-                 Voisin closest_neighbor = new Voisin();
-                 for(Voisin voisin: voisins){
-                     dist = Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_y()-this.y)*(voisin.get_y()-this.y));
-                     if(dist_min > dist){
-                         closest_neighbor = voisin;
-                         dist_min = dist;
-                     }  
-                 }
-                 if(dist_min > 1000)
-                    return null; // n'a pas de voisins
-              return closest_neighbor;
-           }
-           
-           
-           public void avoid_collision(){
-                System.out.println(ConsoleColors.RED+"Decision: Avoid Collision Behaviour"+ConsoleColors.RESET);
-				double epsilon = 0.15, speed_reducer = 10; // paramètre à régler empiriquement.
-				Voisin voisin = get_closest_neighbor();
-				double r_x = voisin.get_x() - this.x;
-				double r_y = voisin.get_y() - y;
-				double vitesse = Math.sqrt(r_x*r_x+r_y*r_y);
-				vitesse = vitesse * 100; // la distance obtenue est calculé en [m], on la transforme en [cm]
-				if(Math.abs(this.theta - Math.atan2(r_y, r_x)) < epsilon){
-					move(speed/speed_reducer, -speed/speed_reducer);
-				} else {
-					move(vitesse, vitesse);
-					if(vitesse<20){
-						move(speed, speed);
-					}
-				}
+				move(0, 0);	
+    }
                 
-           }
+	public void avoid_collision(){
+		System.out.println(ConsoleColors.RED+"Decision: Avoid Collision Behaviour");
+		Voisin voisin = get_closest_neighbor();
+		double r_x = voisin.get_x() - this.x;
+		double r_y = voisin.get_y() - this.y;
+		double vitesse = Math.sqrt(r_x*r_x + r_y*r_y);
+		if(Math.abs(this.theta - (Math.atan2(r_y, r_x) + gamma_avoid)) < epsilon){
+			move(rotate, -rotate);
+		} else {
+				System.out.println("Vitesse: "+vitesse);
+				move(100 * vitesse, 100 * vitesse);
+		}
+		System.out.println("Orientation: "+theta + ConsoleColors.RESET);
+	}
 
-           public void alter_course(){
-			System.out.println(ConsoleColors.GREEN+"Decision: Alter Course Behaviour"+ConsoleColors.RESET);
-			double epsilon = 0.15, speed_reducer = 5; // paramètre à régler empiriquement.
-			if(Math.abs(this.theta - (alpha + Math.PI)) < epsilon){ // on cherche l'orientation du vecteur perpencutaire à F
-					move(speed/speed_reducer, -speed/speed_reducer);
-				}
-			else {
-				move(speed, speed);
+	public void alter_course(){
+		System.out.println(ConsoleColors.GREEN+"Decision: Alter Course Behaviour");
+		if(Math.abs(this.theta - (alpha + Math.PI)) < epsilon){ // on cherche l'orientation du vecteur perpencutaire à F
+				
+				move(rotate, -rotate);
 			}
-           }
+		else {
+			move(speed, speed);
+		}
+		System.out.println("Orientation: "+theta + ConsoleColors.RESET);
+	}
 
+	public void forward(){
+		System.out.println(ConsoleColors.YELLOW+"Decision: Forward");
+		double max_ps = -9999.0;
+		for(Voisin voisin: this.voisins){
+			double produit_scalaire = (this.x-voisin.get_x())*1;//Math.cos(alpha) + (this.y-voisin.get_y())*Math.sin(alpha);
+			if(produit_scalaire > max_ps){
+				max_ps = produit_scalaire;	
+			}
+		}
+		System.out.println("Produit Scalaire Max: "+max_ps);
+		if(Math.abs(this.theta - alpha) < epsilon){
+				move(rotate, -rotate);
+			}
+		else {
+			move(100 * max_ps, 100 * max_ps);
+		}
+		System.out.println("Orientation: "+theta + ConsoleColors.RESET);
+	}
 
-           public void forward(){
-			System.out.println(ConsoleColors.YELLOW+"Decision: Forward"+ConsoleColors.RESET);
-			double max_ps = -9999.0;
-			double epsilon = 0.15, speed_reducer = 5; // paramètre à régler empiriquement.
-			for(Voisin voisin: this.voisins){
-				double produit_scaler= (this.x-voisin.get_x())*Math.cos(alpha) + (this.y-voisin.get_y())*Math.sin(alpha);
-				if(produit_scaler > max_ps){
-					max_ps = produit_scaler;	
-				}
+	public void backwards(){
+		System.out.println(ConsoleColors.BLUE+"Decision: Backwards");
+		double min_ps = 9999.0;
+		for(Voisin voisin: this.voisins){
+			double produit_scalaire= (this.x-voisin.get_x())*1;// Math.cos(alpha) + (this.y-voisin.get_y())*Math.sin(alpha);
+			if(produit_scalaire < min_ps){
+				min_ps = produit_scalaire;	
 			}
-			if(Math.abs(this.theta - alpha) < epsilon){
-					move(speed/speed_reducer, -speed/speed_reducer);
-				}
-			else {
-				move(max_ps, max_ps);
-				if(max_ps < 20){
-					move(speed, speed);
-				}
+		}
+		System.out.println("Produit scalaire Min: "+min_ps);
+		if(Math.abs(this.theta - alpha) < epsilon){
+				move(rotate, -rotate);
 			}
-           }
-
-
-           public void backwards(){
-            System.out.println(ConsoleColors.BLUE+"Decision: Backwards"+ConsoleColors.RESET);
-			double min_ps = 9999.0;
-			double epsilon = 0.15, speed_reducer = 5; // paramètre à régler empiriquement.
-			for(Voisin voisin: this.voisins){
-				double produit_scaler= (this.x-voisin.get_x())*Math.cos(alpha) + (this.y-voisin.get_y())*Math.sin(alpha);
-				if(produit_scaler < min_ps){
-					min_ps = produit_scaler;	
-				}
-			}
-			if(Math.abs(this.theta - alpha) < epsilon){
-					move(speed/speed_reducer, -speed/speed_reducer);
-				}
-			else {
-				move(min_ps*100, min_ps*100);
-				if(min_ps * 100 > -20){
-					move(-speed, -speed);
-				}
-			}
-           }
-           
+		else {
+			move(100 * min_ps, 100 * min_ps);
+		}
+		System.out.println("Orientation: "+theta + ConsoleColors.RESET);
+	}
+    
+	
 	private void moveRandomly() {
 		double left=50;
 		double right=50;
 		move(left,right);
 	}
 
+	// Perception
 	private boolean checkAndAvoidObstacle() {
 
 		double[] ps_values=readDistanceSensorValues();
@@ -397,7 +386,7 @@ public class PatternFormation extends Robot {
 		return Math.sqrt(x*x+y*y);
 	}
 
-
+	// La fonction sert à enregistrer les données des robots dans un fichier texte.
 	public void writeToFile(String message){
 		if(message != null){
 			try {
@@ -416,41 +405,16 @@ public class PatternFormation extends Robot {
 	 * The main method of the robot behaviour
 	 */	
 	public void run() {		
-		// main control loop: perform simulation steps of timeStep milliseconds
-		// and leave the loop when the simulation is over
-		// int nb_co_swarm = 10;
-		
 		while (step(timeStep) != -1) {
-			speed=50;
-			// Perception
+			speed = 50;
+			rotate = 5;
 			String message;
 			message = this.checkMailBox();
 			this.update(message);
 			this.set_voisins(message);
-			
-			/*double dist;
-			Voisin voisin;
-			voisin = this.get_closest_neighbor();
-			if(voisin != null){
-			dist = Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_y()-this.y)*(voisin.get_y()-this.y));
-			System.out.print(this.getName()+" <-- ");
-			System.out.print(dist+" --> ");
-			voisin.afficher();
-			}*/
-			
-			// writeToFile(message); // permet d'enregistrer les messages reçus par les robots dans un fichier text
-			// afficher_message(message); // Affiche le message reçu par le robot
-			// afficher_voisins(); // affiche les voisins du robot
-            
-			// Decision & Action
-			this.to_action();                     
-			
-			/*/boolean obstacle = checkAndAvoidObstacle();
-			if(! obstacle) {		
-			}*/
+			this.to_action();
 		}
 	}
-
 
 
 	public static void main(String[] args) {

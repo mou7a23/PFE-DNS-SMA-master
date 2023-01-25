@@ -135,28 +135,6 @@ void random_position(void)
       y = y - 0.2;
     }
 
-    r[3] = 0; //random_between(-314, 314);
-
-    wb_supervisor_field_set_sf_vec3f(trans_field[n], p);
-    wb_supervisor_field_set_sf_rotation(rttn_field[n], r);
-    wb_supervisor_field_set_sf_string(window_field[n], "e-puck");
-    wb_supervisor_field_set_sf_int32(receiver_channel_field[n], n+1);
-    wb_supervisor_field_set_sf_string(controller_field[n], "PatternFormation");
-    wb_supervisor_field_set_sf_string(name_field[n], rob);
-    wb_supervisor_field_set_sf_bool(synch_field[n],synch);
-    rob[5]++;
-
-    // printf("Robot: %s (x = %f, y = %f, theta = %f)\n", rob, p[0], p[1], r[3]);        
-  }
-  }
-  else{
-  
-  int n = 0;
-  for (; n < NB_EPUCK; n++)
-  {
-    p[0] = random_between(-ARENA_SIZE, ARENA_SIZE); // x coordinate
-    p[1] = random_between(-ARENA_SIZE, ARENA_SIZE); // y coordinate
-
     r[3] = random_between(-314, 314);
 
     wb_supervisor_field_set_sf_vec3f(trans_field[n], p);
@@ -167,13 +145,32 @@ void random_position(void)
     wb_supervisor_field_set_sf_string(name_field[n], rob);
     wb_supervisor_field_set_sf_bool(synch_field[n],synch);
     rob[5]++;
-    
+
     printf("Robot: %s (x = %f, y = %f, theta = %f)\n", rob, p[0], p[1], r[3]);        
   }
+  }
+  else{
+  
+    int n = 0;
+    for (; n < NB_EPUCK; n++){
+      p[0] = random_between(-ARENA_SIZE, ARENA_SIZE); // x coordinate
+      p[1] = random_between(-ARENA_SIZE, ARENA_SIZE); // y coordinate
+
+      r[3] = random_between(-314, 314);
+
+      wb_supervisor_field_set_sf_vec3f(trans_field[n], p);
+      wb_supervisor_field_set_sf_rotation(rttn_field[n], r);
+      wb_supervisor_field_set_sf_string(window_field[n], "e-puck");
+      wb_supervisor_field_set_sf_int32(receiver_channel_field[n], n+1);
+      wb_supervisor_field_set_sf_string(controller_field[n], "PatternFormation");
+      wb_supervisor_field_set_sf_string(name_field[n], rob);
+      wb_supervisor_field_set_sf_bool(synch_field[n],synch);
+      rob[5]++;
+      
+      printf("Robot: %s (x = %f, y = %f, theta = %f)\n", rob, p[0], p[1], r[3]);        
+    }
   
 }
-
-  
   printf("Random positioning done.\n");
   return;
 }
@@ -249,12 +246,9 @@ int send_message(int robot_index){
         }
         rob[5]++;
       }
-      
-      // printf("Supervisor: {message : %s, size: %d}\n", message, strlen(message));
-        
-        WbDeviceTag tag = wb_robot_get_device("emitter");
-        wb_emitter_set_channel(tag, robot_index + 1);
-        success = wb_emitter_send(tag, message, strlen(message) * sizeof(char));     
+      WbDeviceTag tag = wb_robot_get_device("emitter");
+      wb_emitter_set_channel(tag, robot_index + 1);
+      success = wb_emitter_send(tag, message, strlen(message) * sizeof(char));     
 
     return success;
   }
@@ -265,7 +259,7 @@ int main()
 { 
   wb_robot_init();
   srand(time(NULL));
-
+  int n_step = 0;
   // setup
   set_robots();
   random_position();
@@ -277,7 +271,6 @@ int main()
      for(int k = 0; k < NB_EPUCK; k++){
        send_message(k);
      }
-    
   }
 
   wb_robot_cleanup();
