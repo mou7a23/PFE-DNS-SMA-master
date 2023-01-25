@@ -1,0 +1,30 @@
+#VRML_SIM R2022a utf8
+WorldInfo {
+  randomSeed -1
+}
+Viewpoint {
+  fieldOfView 1
+  orientation -0.20118463878059892 0.19210621472335399 0.9605310736167698 1.5700003061004253
+  position -0.011282274405267509 -1.6354428485159458 0.7084855098448175
+}
+Background {
+  skyColor [
+    0.4 0.7 1
+  ]
+}
+RectangleArena {
+  rotation 0 1 0 0
+  floorSize 10 10
+}
+Robot {
+  rotation 0 1 0 0
+  children [
+    Emitter {
+      channel 1
+    }
+  ]
+  name "Superviseur"
+  rotationStep 0.1309
+  controller "Supervisor"
+  supervisor TRUE
+}

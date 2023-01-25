@@ -14,7 +14,7 @@ public class Voisin{
     }
     
     public Voisin(){
-           this.name = "no given name";
+           this.name = "name";
            this.x = 0;
            this.y = 0;
            this.theta = 0;
@@ -56,6 +56,10 @@ public class Voisin{
       
       public double sin_angle(double x, double y){    
             return (this.y - y)/distance(x, y);
+      }
+      
+      public void afficher(){
+          System.out.println("Robot :{name:"+this.get_name()+",coord:("+this.get_x()+","+this.get_y()+")}");
       }
       
       public double distance(double x, double y){

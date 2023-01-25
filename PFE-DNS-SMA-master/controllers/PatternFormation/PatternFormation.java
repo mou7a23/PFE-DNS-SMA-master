@@ -2,6 +2,10 @@
 import java.util.ArrayList;
 import java.util.List;
 
+import java.io.FileWriter;   // Import the FileWriter class
+import java.io.PrintWriter;
+import java.io.IOException;  // Import the IOException class to handle errors
+
 import com.cyberbotics.webots.controller.Camera;
 import com.cyberbotics.webots.controller.CameraRecognitionObject;
 import com.cyberbotics.webots.controller.DistanceSensor;
@@ -97,7 +101,6 @@ public class PatternFormation extends Robot {
 		return psValues;
 	}
 
-
 	/**
 	 * 
 	 * @param left : a value between [-100;100]%
@@ -183,7 +186,7 @@ public class PatternFormation extends Robot {
                     	 }     
                     }
                   }
-                 System.out.println("All Neighbours are added");
+                 // System.out.println("All Neighbours are added");
   	    }  
 	}
 	
@@ -252,7 +255,8 @@ public class PatternFormation extends Robot {
                           if(activeD){
                                backwards();
                           } else {
-                            System.out.println(ConsoleColors.RED+"No zone is activated: Stop"+ConsoleColors.RESET);
+                            stop();
+                            //System.out.println(ConsoleColors.RED+"No zone is activated: Stop"+ConsoleColors.RESET);
                           }
                        }
                  }
@@ -261,17 +265,102 @@ public class PatternFormation extends Robot {
            
            }
            
+
+           public void stop(){
+				move(0, 0);
+           }
+           
+
+           public Voisin get_closest_neighbor(){
+                 double dist_min = 10000, dist;
+                 Voisin closest_neighbor = new Voisin();
+                 for(Voisin voisin: voisins){
+                     dist = Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_y()-this.y)*(voisin.get_y()-this.y));
+                     if(dist_min > dist){
+                         closest_neighbor = voisin;
+                         dist_min = dist;
+                     }  
+                 }
+                 if(dist_min > 1000)
+                    return null; // n'a pas de voisins
+              return closest_neighbor;
+           }
+           
+           
            public void avoid_collision(){
-                 System.out.println("Decision: Avoid Collision Behaviour");
+                System.out.println("Decision: Avoid Collision Behaviour");
+				double gamma_avoid = Math.PI; // ça revient à inverser le sens
+				double epsilon = 0.15, speed_reducer = 10; // paramètre à régler empiriquement.
+				Voisin voisin = get_closest_neighbor();
+				double r_x = voisin.get_x() - this.x;
+				double r_y = voisin.get_y() - y;
+				double vitesse = Math.sqrt(r_x*r_x+r_y*r_y);
+				vitesse = vitesse * 100; // la distance obtenue est calculé en [m], on la transforme en [cm]
+				if(this.theta < Math.atan2(r_y, r_x) - epsilon || this.theta > Math.atan2(r_y, r_x) + epsilon){
+					move(speed/speed_reducer, -speed/speed_reducer);
+				} else {
+					move(vitesse, vitesse);
+					if(vitesse<20){
+						moveRandomly();
+					}
+				}
+                
            }
+
            public void alter_course(){
-                 System.out.println("Decision: Alter Course Behaviour");
+			double epsilon = 0.15, speed_reducer = 5; // paramètre à régler empiriquement.
+			if(this.theta < (alpha + Math.PI) - epsilon || this.theta > (alpha + Math.PI) + epsilon){ // on cherche l'orientation du vecteur perpencutaire à F
+					move(speed/speed_reducer, -speed/speed_reducer);
+				}
+			else {
+				moveRandomly();
+			}
+        	System.out.println("Decision: Alter Course Behaviour");
            }
+
+
            public void forward(){
-                 System.out.println("Decision: Forward");
+			double max_ps = -9999.0;
+			double epsilon = 0.15, speed_reducer = 5; // paramètre à régler empiriquement.
+			for(Voisin voisin: this.voisins){
+				double produit_scaler= (this.x-voisin.get_x())*Math.cos(alpha) + (this.y-voisin.get_y())*Math.sin(alpha);
+				if(produit_scaler > max_ps){
+					max_ps = produit_scaler;	
+				}
+			}
+			if(this.theta < alpha - epsilon || this.theta > alpha + epsilon){
+					move(speed/speed_reducer, -speed/speed_reducer);
+				}
+			else {
+				// moveRandomly();
+				move(max_ps, max_ps);
+				if(max_ps < 20){
+					move(speed, speed);
+				}
+			}
+			System.out.println("Decision: Forward");
            }
+
+
            public void backwards(){
-                 System.out.println("Decision: Backwards");
+			double min_ps = 9999.0;
+			double epsilon = 0.15, speed_reducer = 5; // paramètre à régler empiriquement.
+			for(Voisin voisin: this.voisins){
+				double produit_scaler= (this.x-voisin.get_x())*Math.cos(alpha) + (this.y-voisin.get_y())*Math.sin(alpha);
+				if(produit_scaler < min_ps){
+					min_ps = produit_scaler;	
+				}
+			}
+			if(this.theta < alpha - epsilon || this.theta > alpha + epsilon){
+					move(speed/speed_reducer, -speed/speed_reducer);
+				}
+			else {
+				move(min_ps*100, min_ps*100);
+				if(min_ps > -20){
+					move(-speed, -speed);
+				}
+			}
+            System.out.println("Decision: Backwards");
            }
            
 	private void moveRandomly() {
@@ -323,6 +412,19 @@ public class PatternFormation extends Robot {
 	}
 
 
+	public void writeToFile(String message){
+		if(message != null){
+			try {
+				PrintWriter myWriter = new PrintWriter(new FileWriter("filename.txt", true));
+				myWriter.println(this.getName()+":{"+message+"}");
+				myWriter.close();
+				System.out.println("Successfully wrote to the file.");
+			} catch (IOException e) {
+				System.out.println("An error occurred.");
+				e.printStackTrace();
+			}	
+		}
+	}
 
 	/**
 	 * The main method of the robot behaviour
@@ -331,25 +433,36 @@ public class PatternFormation extends Robot {
 		// main control loop: perform simulation steps of timeStep milliseconds
 		// and leave the loop when the simulation is over
 		// int nb_co_swarm = 10;
+		
 		while (step(timeStep) != -1) {
 			speed=50;
-			if(this.getName().equals("epuck0")){
-                                  String message;
-                                  message = this.checkMailBox();
-                                  this.update(message);
-                                  this.set_voisins(message);
-                                  
-                                  afficher_message(message);
-                                  afficher_voisins();
-			 boolean obstacle = checkAndAvoidObstacle();
-
-			if(! obstacle) {
-				moveRandomly();
-				System.out.println("No Obstacle !!");
-				this.to_action();
-				
-			}
-		}}
+			// Perception
+			String message;
+			message = this.checkMailBox();
+			this.update(message);
+			this.set_voisins(message);
+			
+			/*double dist;
+			Voisin voisin;
+			voisin = this.get_closest_neighbor();
+			if(voisin != null){
+			dist = Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_y()-this.y)*(voisin.get_y()-this.y));
+			System.out.print(this.getName()+" <-- ");
+			System.out.print(dist+" --> ");
+			voisin.afficher();
+			}*/
+			
+			// writeToFile(message); // permet d'enregistrer les messages reçus par les robots dans un fichier text
+			// afficher_message(message); // Affiche le message reçu par le robot
+			// afficher_voisins(); // affiche les voisins du robot
+            
+			// Decision & Action
+			this.to_action();                     
+			
+			/*/boolean obstacle = checkAndAvoidObstacle();
+			if(! obstacle) {		
+			}*/
+		}
 	}
 
 

@@ -26,7 +26,7 @@
 
 
 #define TIME_STEP 256
-#define NB_EPUCK 10
+#define NB_EPUCK 8
 #define ARENA_SIZE 100
 #define RANGE_DETECTION 0.36
 #define RANDOM false
@@ -274,9 +274,8 @@ int main()
   while (wb_robot_step(TIME_STEP) != -1)
   {
      // envoi de message
-     int sent = 0;
      for(int k = 0; k < NB_EPUCK; k++){
-       sent = send_message(k);
+       send_message(k);
      }
     
   }
