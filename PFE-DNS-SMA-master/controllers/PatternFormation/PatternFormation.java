@@ -150,46 +150,50 @@ public class PatternFormation extends Robot {
 	}
 	
 	protected void update(String message){
-	if (message != null){
-        	    String[] robots_data = message.split(";", 10); // NB_EPUCK = 10
-        	    String[] robot_data;
-        	    for (int iter = 0; iter < robots_data.length - 1; iter++){
-            	robot_data = robots_data[iter].split(",", 4);  
-      	           if (robot_data[0].equals(this.getName())){
-          	              this.x = Double.parseDouble(robot_data[1]);
-          	              this.y = Double.parseDouble(robot_data[2]);
-          	              this.theta = Double.parseDouble(robot_data[3]);
-      	            }
-      	        }
-      	    }
+		if (message != null){
+			String[] robots_data = message.split(";", 10); // NB_EPUCK = 10
+			String[] robot_data;
+			this.voisins.clear();
+			for (int iter = 0; iter < robots_data.length - 1; iter++){
+				robot_data = robots_data[iter].split(",", 4);  
+				if (robot_data[0].equals(this.getName())){
+					this.x = Double.parseDouble(robot_data[1]);
+					this.y = Double.parseDouble(robot_data[2]);
+					this.theta = Double.parseDouble(robot_data[3]);
+				} else {
+					if(!robot_data[0].equals("")){
+						this.voisins.add(new Voisin(robot_data[0], Double.parseDouble(robot_data[1]), Double.parseDouble(robot_data[2]), Double.parseDouble(robot_data[3])));
+					}
+				}
+			}
+		}
 	}
+
 	
 	protected void afficher_message(String message){
            if(message != null){
-  	  System.out.println("I am " +this.getName());
-	  System.out.println(" Message reçu : "+message);
-	  System.out.println("This is my Position ("+this.x+","+this.y+") and my Orientation: "+this.theta);
+			System.out.println("{robot: " +this.getName()+", msg: "+message+"}");
            }
 	}
 	
-
+	// this was included in update function above
 	public void set_voisins(String message){
                if(message != null){
   	    String[] robots_data = message.split(";", 11); // NB_EPUCK = 10
   	    String[] robot_data;
   	    this.voisins.clear();
-	     for (String str_data:robots_data){
-        	         robot_data = str_data.split(",", 4);
-                    if(!robot_data[0].equals("")){
-                    	 if (!robot_data[0].equals(this.getName())){
-                            this.voisins.add(new Voisin(robot_data[0], Double.parseDouble(robot_data[1]), Double.parseDouble(robot_data[3]), Double.parseDouble(robot_data[2])));
-                    	 }     
-                    }
-                  }
+		for (String str_data:robots_data){
+			robot_data = str_data.split(",", 4);
+			if(!robot_data[0].equals("")){
+					if (!robot_data[0].equals(this.getName())){
+					this.voisins.add(new Voisin(robot_data[0], Double.parseDouble(robot_data[1]), Double.parseDouble(robot_data[2]), Double.parseDouble(robot_data[3])));
+					}     
+			}
+		}
   	    }  
 	}
 	
-
+	
 	protected void afficher_voisins(){
   	    String[] robot_data;
   	    double dist;
@@ -197,70 +201,77 @@ public class PatternFormation extends Robot {
   	    if (this.voisins.isEmpty())
       	       System.out.println(ConsoleColors.RED+"I don't have neighbors!!"+ConsoleColors.RESET);
       	    else{
-      	        System.out.println(" ");
   	    for (Voisin voisin:this.voisins){
-  	             dist = Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_y()-this.y)*(voisin.get_y()-this.y));
-                  	  System.out.print(voisin.get_name()+" Distance: "+dist);
+  	            dist = Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_y()-this.y)*(voisin.get_y()-this.y));
+                System.out.println("{Voisin: "+voisin.get_name()+", Coordinates: ("+voisin.get_x()+","+voisin.get_y()+"), Distance: "+dist+"}");
   	        }
-  	        System.out.println(" ");
   	    }
 	}
            
     // Decision To Action     
     public void to_action(){
 		System.out.println("Robot: " + this.getName()+"("+this.x+","+this.y+")");
-                 boolean activeA = false, activeB = false, activeC = false, activeD = false;
-                 // Decision  
-                 for(Voisin voisin: this.voisins){
-                     if(Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_y()-this.y)*(voisin.get_y()-this.y)) < r_avoid){
-                         activeA = true; // {1, 3, 5, 7, 9, 11, 13, 15} ==> AvoidCollision
-                     } else { // {0, 2, 4, 6, 8, 10, 12, 14}
-                     if(Math.atan2(voisin.get_x() - this.x, voisin.get_y() - this.y) < deadAheadWidth){
-                        activeC = true; // {4, 6, 12, 14} ==> AlterCourse
-                     } else { // {0, 2, 8, 10}
-                     if(Math.abs(Math.atan2(voisin.get_x() - this.x, voisin.get_y() - this.y)) < Math.PI/2){
-                       activeB = true; // {2, 10} ==> Forward
-                       }
-                       else {
-                         activeD = true; // {8} ==> Backwards
-                         }
-						// Le {0} est lorsque le robot n'a pas de voisin
-                       }
-                     }
-                 }
-				// to Action
-                if(activeA){
-                   avoid_collision();
-                } else {
-                 if(activeC){
-                   alter_course();
-                 } else {
-                       if(activeB){
-                          forward();
-                       } else {
-                          if(activeD){
-                               backwards();
-                          } else {
-                            stop();
-                          }
-                       }
-                 }
-              }   
+		boolean activeA = false, activeB = false, activeC = false, activeD = false;
+		double dist, ang;
+		// Decision  
+		for(Voisin voisin: this.voisins){
+			dist = Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_y()-this.y)*(voisin.get_y()-this.y));
+			ang = Math.atan2(voisin.get_x() - this.x, voisin.get_y() - this.y);
+			System.out.println(voisin.get_name()+" Distance: "+dist+" r_avoid: "+r_avoid);
+			if(dist < r_avoid){
+				activeA = true; // {1, 3, 5, 7, 9, 11, 13, 15} ==> AvoidCollision
+			} else { // {0, 2, 4, 6, 8, 10, 12, 14}	
+				System.out.println(" Angle: "+Math.abs(ang)+" deadAheadWidth: "+deadAheadWidth);
+				if(Math.abs(ang) < deadAheadWidth){
+					activeC = true; // {4, 6, 12, 14} ==> AlterCourse
+					} else { // {0, 2, 8, 10}
+					if(Math.abs(ang) < Math.PI/2){
+						activeB = true; // {2, 10} ==> Forward
+						} else {
+							activeD = true; // {8} ==> Backwards
+						}
+				// Le {0} est lorsque le robot n'a pas de voisin
+				}
+			}
+		}
+		// to Action
+		if(activeA){
+			// {1, 3, 5, 7, 9, 11, 13, 15} ==> AvoidCollision
+			avoid_collision();
+		} else {
+			if(activeC){
+			// {4, 6, 12, 14} ==> AlterCourse
+			alter_course();
+			} else {
+				if(activeB){
+					// {2, 10} ==> Forward
+					forward();
+				} else {
+					if(activeD){
+						// {8} ==> Backwards
+						backwards();
+					} else {
+					// {0}
+					stop();
+					}
+				}
+			}
+		}   
     }
 
 	
            
     public Voisin get_closest_neighbor(){
-		double dist_min = 10000, dist;
+		double dist_min = 10000.0, dist;
 		Voisin closest_neighbor = new Voisin();
 		for(Voisin voisin: voisins){
-				dist = Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_y()-this.y)*(voisin.get_y()-this.y));
-				if(dist_min > dist){
-					closest_neighbor = voisin;
-					dist_min = dist;
-				}  
+			dist = Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_y()-this.y)*(voisin.get_y()-this.y));
+			if(dist_min > dist){
+				closest_neighbor = voisin;
+				dist_min = dist;
+			}  
 		}
-		if(dist_min > 1000)
+		if(dist_min == 10000.0)
 			return null; // n'a pas de voisins
 		return closest_neighbor;
     }
@@ -284,13 +295,12 @@ public class PatternFormation extends Robot {
 				System.out.println("Vitesse: "+vitesse);
 				move(100 * vitesse, 100 * vitesse);
 		}
-		System.out.println("Orientation: "+theta + ConsoleColors.RESET);
+		System.out.println("Orientation: "+this.theta + ConsoleColors.RESET);
 	}
 
 	public void alter_course(){
 		System.out.println(ConsoleColors.GREEN+"Decision: Alter Course Behaviour");
-		if(Math.abs(this.theta - (alpha + Math.PI)) < epsilon){ // on cherche l'orientation du vecteur perpencutaire à F
-				
+		if(Math.abs(this.theta - (alpha + Math.PI/2)) < epsilon){ // on cherche l'orientation du vecteur perpencutaire à F	
 				move(rotate, -rotate);
 			}
 		else {
@@ -303,7 +313,7 @@ public class PatternFormation extends Robot {
 		System.out.println(ConsoleColors.YELLOW+"Decision: Forward");
 		double max_ps = -9999.0;
 		for(Voisin voisin: this.voisins){
-			double produit_scalaire = (this.x-voisin.get_x())*1;//Math.cos(alpha) + (this.y-voisin.get_y())*Math.sin(alpha);
+			double produit_scalaire = (voisin.get_x()-this.x)*Math.cos(alpha) + (voisin.get_y()-this.y)*Math.sin(alpha);
 			if(produit_scalaire > max_ps){
 				max_ps = produit_scalaire;	
 			}
@@ -322,7 +332,7 @@ public class PatternFormation extends Robot {
 		System.out.println(ConsoleColors.BLUE+"Decision: Backwards");
 		double min_ps = 9999.0;
 		for(Voisin voisin: this.voisins){
-			double produit_scalaire= (this.x-voisin.get_x())*1;// Math.cos(alpha) + (this.y-voisin.get_y())*Math.sin(alpha);
+			double produit_scalaire= (voisin.get_x()-this.x) * Math.cos(alpha) + (voisin.get_y()-this.y)*Math.sin(alpha);
 			if(produit_scalaire < min_ps){
 				min_ps = produit_scalaire;	
 			}
@@ -404,14 +414,15 @@ public class PatternFormation extends Robot {
 	/**
 	 * The main method of the robot behaviour
 	 */	
-	public void run() {		
+	public void run() {
 		while (step(timeStep) != -1) {
 			speed = 50;
 			rotate = 5;
 			String message;
 			message = this.checkMailBox();
 			this.update(message);
-			this.set_voisins(message);
+			this.afficher_message(message);
+			// this.afficher_voisins();
 			this.to_action();
 		}
 	}

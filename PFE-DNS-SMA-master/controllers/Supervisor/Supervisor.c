@@ -26,7 +26,7 @@
 
 
 #define TIME_STEP 256
-#define NB_EPUCK 8
+#define NB_EPUCK 10
 #define ARENA_SIZE 100
 #define RANGE_DETECTION 0.36
 #define RANDOM true
@@ -152,11 +152,13 @@ void random_position(void)
   else{
   
     int n = 0;
+    double angle = random_between(-314, 314);
     for (; n < NB_EPUCK; n++){
-      p[0] = random_between(-ARENA_SIZE, ARENA_SIZE); // x coordinate
-      p[1] = random_between(-ARENA_SIZE, ARENA_SIZE); // y coordinate
+      
+      p[0] = 0.5 * cos(angle + n * 2*M_PI / NB_EPUCK);
+      p[1] = 0.5 * sin(angle + n * 2*M_PI / NB_EPUCK);
 
-      r[3] = random_between(-314, 314);
+      r[3] = cos(random_between(-314, 314));
 
       wb_supervisor_field_set_sf_vec3f(trans_field[n], p);
       wb_supervisor_field_set_sf_rotation(rttn_field[n], r);
@@ -224,8 +226,6 @@ int send_message(int robot_index){
       int success = 0;
       int i = 0;
       const double *values_robot = wb_supervisor_field_get_sf_vec3f(trans_field[robot_index]);
-      // const double *rotation = wb_supervisor_field_get_sf_rotation(rttn_field[robot_index]);
-      
       for(i = 0; i < NB_EPUCK; i++){
         values_robots[i] = wb_supervisor_field_get_sf_vec3f(trans_field[i]);
         rotations[i] = wb_supervisor_field_get_sf_rotation(rttn_field[i]);
@@ -234,7 +234,8 @@ int send_message(int robot_index){
         y = values_robots[i][1];
         theta = rotations[i][3];
         double _distance = distance(values_robot[0], values_robot[1], x, y);
-        if(_distance < R_FoV){
+
+        //if(_distance < R_FoV){
           strcat(message, rob);
           strcat(message, sep);
           strcat(message, doubleToString(x));
@@ -243,7 +244,7 @@ int send_message(int robot_index){
           strcat(message, sep);
           strcat(message, doubleToString(theta));
           strcat(message, end);
-        }
+        //}
         rob[5]++;
       }
       WbDeviceTag tag = wb_robot_get_device("emitter");
@@ -259,7 +260,6 @@ int main()
 { 
   wb_robot_init();
   srand(time(NULL));
-  int n_step = 0;
   // setup
   set_robots();
   random_position();
