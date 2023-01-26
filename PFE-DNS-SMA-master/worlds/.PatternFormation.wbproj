@@ -6,7 +6,7 @@ minimizedPerspectives: 000000ff00000000fd0000000100000001000002fa000003e8fc02000
 maximizedDockId: -1
 centralWidgetVisible: 1
 orthographicViewHeight: 1
-textFiles: 2 "controllers/PatternFormation/PatternFormation.java" "controllers/PatternFormation/Voisin.java" "controllers/Supervisor/Supervisor.c"
+textFiles: 0 "controllers/PatternFormation/PatternFormation.java" "controllers/PatternFormation/Voisin.java" "controllers/Supervisor/Supervisor.c"
 consoles: Console:All:All
 renderingDevicePerspectives: epuck0:camera;1;1;0;0
 renderingDevicePerspectives: epuck1:camera;1;1;0;0
