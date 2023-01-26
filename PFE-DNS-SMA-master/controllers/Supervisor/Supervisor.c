@@ -30,7 +30,7 @@
 #define ARENA_SIZE 100
 #define RANGE_DETECTION 0.36
 #define RANDOM true
-#define R_FoV 0.5
+#define R_FoV 50
 
 #define MSG_SIZE 128
 
@@ -117,7 +117,7 @@ void random_position(void)
   double p[3] = {0, 0, 0};
   double r[4] = {0, 0, 1, 0};
   bool synch=true;
-  char rob[7] = "epuck0";
+  char rob[8] = "epuck0";
   
   if(! RANDOM){
   double x=0.12;
@@ -155,8 +155,8 @@ void random_position(void)
     double angle = random_between(-314, 314);
     for (; n < NB_EPUCK; n++){
       
-      p[0] = 0.5 * cos(angle + n * 2*M_PI / NB_EPUCK);
-      p[1] = 0.5 * sin(angle + n * 2*M_PI / NB_EPUCK);
+      p[0] = 0.5 * random_between(-ARENA_SIZE, ARENA_SIZE); // * cos(angle + n * 2*M_PI / NB_EPUCK);
+      p[1] = 0.5 * random_between(-ARENA_SIZE, ARENA_SIZE); //* sin(angle + n * 2*M_PI / NB_EPUCK);
 
       r[3] = cos(random_between(-314, 314));
 
@@ -235,7 +235,7 @@ int send_message(int robot_index){
         theta = rotations[i][3];
         double _distance = distance(values_robot[0], values_robot[1], x, y);
 
-        //if(_distance < R_FoV){
+        if(_distance < R_FoV){
           strcat(message, rob);
           strcat(message, sep);
           strcat(message, doubleToString(x));
@@ -244,7 +244,7 @@ int send_message(int robot_index){
           strcat(message, sep);
           strcat(message, doubleToString(theta));
           strcat(message, end);
-        //}
+        }
         rob[5]++;
       }
       WbDeviceTag tag = wb_robot_get_device("emitter");

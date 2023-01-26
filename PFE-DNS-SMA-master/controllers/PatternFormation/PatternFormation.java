@@ -2,6 +2,8 @@
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.lang.model.util.ElementScanner6;
+
 import java.io.FileWriter;   // Import the FileWriter class
 import java.io.PrintWriter;
 import java.io.IOException;  // Import the IOException class to handle errors
@@ -27,14 +29,16 @@ public class PatternFormation extends Robot {
 	private LED[] leds;
 
 	private double detection_threshold=80;
-	private double speed;
-	private double rotate;
+	private double speed = 50;
+	private double rotate = 5;
+	public int NB_EPUCK = 33;
 	// private String robID;
     double alpha = Math.toRadians(0); // l'angle génératrice du vecteur F en radians
-	double deadAheadWidth = Math.toRadians(15); // l'angle de dead ahead en radians; zone 'C'
+	double deadAheadWidth = Math.toRadians(15); // l'angle de dead ahead en radians; zone 'C' [0, 18]
 	double r_avoid = 0.3; // le rayon de la zone A
-	double gamma_avoid = Math.toRadians(100);
-	double epsilon = Math.toRadians(5); // paramètre à régler empiriquement.
+	double gamma_avoid = Math.toRadians(130);
+	double epsilon = 0.05*Math.PI;//Math.toRadians(10); // paramètre à régler empiriquement.
+
 	double x, y, theta;
 	// List of neighbours
 	private List<Voisin> voisins = new ArrayList<Voisin>();
@@ -151,7 +155,7 @@ public class PatternFormation extends Robot {
 	
 	protected void update(String message){
 		if (message != null){
-			String[] robots_data = message.split(";", 10); // NB_EPUCK = 10
+			String[] robots_data = message.split(";", NB_EPUCK); // NB_EPUCK = 10
 			String[] robot_data;
 			this.voisins.clear();
 			for (int iter = 0; iter < robots_data.length - 1; iter++){
@@ -208,56 +212,7 @@ public class PatternFormation extends Robot {
   	    }
 	}
            
-    // Decision To Action     
-    public void to_action(){
-		System.out.println("Robot: " + this.getName()+"("+this.x+","+this.y+")");
-		boolean activeA = false, activeB = false, activeC = false, activeD = false;
-		double dist, ang;
-		// Decision  
-		for(Voisin voisin: this.voisins){
-			dist = Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_y()-this.y)*(voisin.get_y()-this.y));
-			ang = Math.atan2(voisin.get_x() - this.x, voisin.get_y() - this.y);
-			System.out.println(voisin.get_name()+" Distance: "+dist+" r_avoid: "+r_avoid);
-			if(dist < r_avoid){
-				activeA = true; // {1, 3, 5, 7, 9, 11, 13, 15} ==> AvoidCollision
-			} else { // {0, 2, 4, 6, 8, 10, 12, 14}	
-				System.out.println(" Angle: "+Math.abs(ang)+" deadAheadWidth: "+deadAheadWidth);
-				if(Math.abs(ang) < deadAheadWidth){
-					activeC = true; // {4, 6, 12, 14} ==> AlterCourse
-					} else { // {0, 2, 8, 10}
-					if(Math.abs(ang) < Math.PI/2){
-						activeB = true; // {2, 10} ==> Forward
-						} else {
-							activeD = true; // {8} ==> Backwards
-						}
-				// Le {0} est lorsque le robot n'a pas de voisin
-				}
-			}
-		}
-		// to Action
-		if(activeA){
-			// {1, 3, 5, 7, 9, 11, 13, 15} ==> AvoidCollision
-			avoid_collision();
-		} else {
-			if(activeC){
-			// {4, 6, 12, 14} ==> AlterCourse
-			alter_course();
-			} else {
-				if(activeB){
-					// {2, 10} ==> Forward
-					forward();
-				} else {
-					if(activeD){
-						// {8} ==> Backwards
-						backwards();
-					} else {
-					// {0}
-					stop();
-					}
-				}
-			}
-		}   
-    }
+    
 
 	
            
@@ -275,77 +230,7 @@ public class PatternFormation extends Robot {
 			return null; // n'a pas de voisins
 		return closest_neighbor;
     }
-	
-	// Actions
 
-    public void stop(){
-				System.out.println(ConsoleColors.PURPLE+"Decision: Stop"+ConsoleColors.RESET);
-				move(0, 0);	
-    }
-                
-	public void avoid_collision(){
-		System.out.println(ConsoleColors.RED+"Decision: Avoid Collision Behaviour");
-		Voisin voisin = get_closest_neighbor();
-		double r_x = voisin.get_x() - this.x;
-		double r_y = voisin.get_y() - this.y;
-		double vitesse = Math.sqrt(r_x*r_x + r_y*r_y);
-		if(Math.abs(this.theta - (Math.atan2(r_y, r_x) + gamma_avoid)) < epsilon){
-			move(rotate, -rotate);
-		} else {
-				System.out.println("Vitesse: "+vitesse);
-				move(100 * vitesse, 100 * vitesse);
-		}
-		System.out.println("Orientation: "+this.theta + ConsoleColors.RESET);
-	}
-
-	public void alter_course(){
-		System.out.println(ConsoleColors.GREEN+"Decision: Alter Course Behaviour");
-		if(Math.abs(this.theta - (alpha + Math.PI/2)) < epsilon){ // on cherche l'orientation du vecteur perpencutaire à F	
-				move(rotate, -rotate);
-			}
-		else {
-			move(speed, speed);
-		}
-		System.out.println("Orientation: "+theta + ConsoleColors.RESET);
-	}
-
-	public void forward(){
-		System.out.println(ConsoleColors.YELLOW+"Decision: Forward");
-		double max_ps = -9999.0;
-		for(Voisin voisin: this.voisins){
-			double produit_scalaire = (voisin.get_x()-this.x)*Math.cos(alpha) + (voisin.get_y()-this.y)*Math.sin(alpha);
-			if(produit_scalaire > max_ps){
-				max_ps = produit_scalaire;	
-			}
-		}
-		System.out.println("Produit Scalaire Max: "+max_ps);
-		if(Math.abs(this.theta - alpha) < epsilon){
-				move(rotate, -rotate);
-			}
-		else {
-			move(100 * max_ps, 100 * max_ps);
-		}
-		System.out.println("Orientation: "+theta + ConsoleColors.RESET);
-	}
-
-	public void backwards(){
-		System.out.println(ConsoleColors.BLUE+"Decision: Backwards");
-		double min_ps = 9999.0;
-		for(Voisin voisin: this.voisins){
-			double produit_scalaire= (voisin.get_x()-this.x) * Math.cos(alpha) + (voisin.get_y()-this.y)*Math.sin(alpha);
-			if(produit_scalaire < min_ps){
-				min_ps = produit_scalaire;	
-			}
-		}
-		System.out.println("Produit scalaire Min: "+min_ps);
-		if(Math.abs(this.theta - alpha) < epsilon){
-				move(rotate, -rotate);
-			}
-		else {
-			move(100 * min_ps, 100 * min_ps);
-		}
-		System.out.println("Orientation: "+theta + ConsoleColors.RESET);
-	}
     
 	
 	private void moveRandomly() {
@@ -392,8 +277,50 @@ public class PatternFormation extends Robot {
 		return true;		
 	}
 	
-	protected double distance(double x, double y) {
-		return Math.sqrt(x*x+y*y);
+	protected double distance(double x, double y, double x_v, double y_v) {
+		return Math.sqrt((x_v-x)*(x_v-x)+(y_v-y)*(y_v-y));
+	}
+
+	public void to_action(){
+		double f = this.alpha;
+		double r_zone_A = this.r_avoid;
+		double e = this.epsilon;
+		double pi_2 = Math.PI/2;
+		double deadAheadAngle = this.deadAheadWidth;
+		double x = this.x, y = this.y, x_v, y_v;
+		double dist;
+		double ang;
+		boolean activeA = false, activeB = false, activeC = false, activeD = false;
+		for(Voisin voisin: this.voisins){
+			x_v = voisin.get_x();
+			y_v = voisin.get_y();
+			dist = distance(x, y, x_v, y_v);
+			ang = Math.atan2(x_v, y_v);
+			if(dist < r_zone_A){
+				activeA = true;
+				System.out.println(ConsoleColors.RED+"Zone A avtivée par: "+voisin.get_name()+ConsoleColors.RESET);
+			} else if(Math.abs(ang) < deadAheadAngle){
+				System.out.println(ConsoleColors.GREEN+"Zone C avtivée par: "+voisin.get_name()+" ang = "+Math.abs(ang)+ConsoleColors.RESET);
+				activeC = true;
+			} else if(Math.cos(ang) > 0.01){ // 0.01 intervalle de tolérence pour permettre aux robots de s'arreter lorsqu'ils soient un à coté de l'autre sur la ligne
+				System.out.println(ConsoleColors.YELLOW+"Zone B avtivée par: "+voisin.get_name()+" ang = "+Math.cos(ang - alpha)+ConsoleColors.RESET);
+				activeB = true;
+			} else if(Math.cos(ang) < -0.01){
+				System.out.println(ConsoleColors.BLUE+"Zone D avtivée par: "+voisin.get_name()+ConsoleColors.RESET);
+				activeD = true;
+			}			
+		}
+		if(activeA){
+			System.out.println(ConsoleColors.RED+"Decision: Avoid Collision Behaviour"+ConsoleColors.RESET);
+		} else if(activeC){
+			System.out.println(ConsoleColors.GREEN+"Decision: Alter Course Behaviour"+ConsoleColors.RESET);
+		} else if(activeB){
+			System.out.println(ConsoleColors.YELLOW+"Decision: Forward Behaviour"+ConsoleColors.RESET);
+		} else if(activeD){
+			System.out.println(ConsoleColors.BLUE+"Decision: Backwards Behaviour"+ConsoleColors.RESET);
+		} else{
+			System.out.println(ConsoleColors.RED_BOLD+"Decision: Stop Behaviour"+ConsoleColors.RESET);
+		}
 	}
 
 	// La fonction sert à enregistrer les données des robots dans un fichier texte.
@@ -416,12 +343,11 @@ public class PatternFormation extends Robot {
 	 */	
 	public void run() {
 		while (step(timeStep) != -1) {
-			speed = 50;
-			rotate = 5;
+          		           System.out.println("Robot's name: " +this.getName()+"("+this.x+", "+this.y+")");
 			String message;
 			message = this.checkMailBox();
 			this.update(message);
-			this.afficher_message(message);
+			// this.afficher_message(message);
 			// this.afficher_voisins();
 			this.to_action();
 		}
