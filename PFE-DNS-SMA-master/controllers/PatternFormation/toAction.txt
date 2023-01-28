@@ -1,0 +1,126 @@
+// Decision To Action     
+public void to_action(){
+    //System.out.println("Robot: " + this.getName()+"("+this.x+","+this.y+")");
+    boolean activeA = false, activeB = false, activeC = false, activeD = false;
+    double dist, ang;
+    // Decision  
+    for(Voisin voisin: this.voisins){
+        dist = Math.sqrt((voisin.get_x()-this.x)*(voisin.get_x()-this.x)+(voisin.get_y()-this.y)*(voisin.get_y()-this.y));
+        ang = Math.atan2(voisin.get_x() - this.x, voisin.get_y() - this.y);
+        // System.out.println(voisin.get_name()+" Distance: "+dist+" r_avoid: "+r_avoid);
+        if(dist < r_avoid){
+            System.out.println(ConsoleColors.RED+"Zone A avtivée par: "+voisin.get_name()+ConsoleColors.RESET);
+            activeA = true; // {1, 3, 5, 7, 9, 11, 13, 15} ==> AvoidCollision
+        } else if(Math.cos(ang - alpha) > Math.cos(deadAheadWidth)){
+            System.out.println(ConsoleColors.GREEN+"Zone C avtivée par: "+voisin.get_name()+"cos(ang - alpha) = "+Math.cos(ang - alpha)+ConsoleColors.RESET);
+            activeC = true; // {4, 6, 12, 14} ==> AlterCourse
+        } else if(Math.cos(ang - alpha) < 0){
+            System.out.println(ConsoleColors.YELLOW+"Zone B avtivée par: "+voisin.get_name()+"cos(ang - alpha) = "+Math.cos(ang - alpha)+ConsoleColors.RESET);
+            activeB = true; // {2, 10} ==> Forward
+        } else {
+            System.out.println(ConsoleColors.BLUE+"Zone D avtivée par: "+voisin.get_name()+ConsoleColors.RESET);
+            activeD = true; // {8} ==> Backwards
+        }
+            // Le {0} est lorsque le robot n'a pas de voisin
+    }
+
+    if(activeA){// {1, 3, 5, 7, 9, 11, 13, 15} ==> AvoidCollision
+        avoid_collision();
+    } else if(activeC){
+        // {4, 6, 12, 14} ==> AlterCourse
+        alter_course();
+    } else if(activeB){
+        // {2, 10} ==> Forward
+        forward();
+    } else if(activeD){
+        // {8} ==> Backwards
+        backwards();
+    } else {
+        // {0}
+        stop();
+    }
+}
+   
+	
+	// Actions
+
+public void stop(){
+    System.out.println(ConsoleColors.PURPLE+"Decision: Stop"+ConsoleColors.RESET);
+    move(0, 0);	
+}
+        
+public void avoid_collision(){
+System.out.println(ConsoleColors.RED+"Decision: Avoid Collision Behaviour");
+Voisin voisin = get_closest_neighbor();
+double r_x = voisin.get_x() - this.x;
+double r_y = voisin.get_y() - this.y;
+double vitesse = Math.sqrt(r_x*r_x + r_y*r_y);
+if(Math.abs((Math.atan2(r_x, r_y) + gamma_avoid) - this.theta) > Math.toRadians(30)){//this.epsilon){
+           System.out.println("Orientation: "+this.theta +" Je me tourne vers Cible: "+(Math.atan2(r_x, r_y) + gamma_avoid)+" Ecart: "+Math.abs((Math.atan2(r_x, r_y) + gamma_avoid) - this.theta));
+       move(rotate, -rotate);
+} else {
+       System.out.println("Orientation: "+this.theta +" Cible: "+Math.abs(Math.atan2(r_x, r_y) + gamma_avoid)+" Ecart: "+Math.abs((Math.atan2(r_x, r_y) + gamma_avoid) - this.theta));
+       System.out.println("Vitesse: "+vitesse);
+       move(100 * vitesse, 100 * vitesse);
+}
+System.out.println("Orientation: "+this.theta + ConsoleColors.RESET);
+}
+
+public void alter_course(){
+System.out.println(ConsoleColors.GREEN+"Decision: Alter Course Behaviour");
+if(Math.abs(this.theta - (alpha + Math.PI/2)) > this.epsilon){ // on cherche l'orientation du vecteur perpencutaire à F
+                 System.out.println("Orientation: "+this.theta +"v_alpha = "+alpha+" Je me tourne vers Cible: "+alpha + Math.PI/2+" Ecart: "+Math.abs(this.theta - (alpha + Math.PI/2)));	
+    move(rotate, -rotate);
+    }
+else {
+      System.out.println("Orientation: "+this.theta +" Cible: "+Math.abs(alpha + Math.PI/2)+" Ecart: "+Math.abs(this.theta - (alpha + Math.PI/2)));	
+
+    move(speed, speed);
+}
+System.out.println("Orientation: "+this.theta + ConsoleColors.RESET);
+}
+
+public void forward(){
+System.out.println(ConsoleColors.YELLOW+"Decision: Forward");
+double max_ps = -9999.0;
+for(Voisin voisin: this.voisins){
+    double produit_scalaire = (voisin.get_x()-this.x)*Math.cos(alpha) + (voisin.get_y()-this.y)*Math.sin(alpha);
+    if(produit_scalaire > max_ps){
+        max_ps = produit_scalaire;	
+    }
+}
+System.out.println("Produit Scalaire Max: "+max_ps);
+if(Math.abs(this.theta - alpha) > this.epsilon){
+                 System.out.println("Orientation: "+this.theta +" Je me tourne vers Cible: "+ alpha+" Ecart: " + Math.abs(this.theta - alpha));
+    move(rotate, -rotate);
+    }
+else {
+       System.out.println("Orientation: "+this.theta +" Cible: "+ alpha +" Ecart: " + Math.abs(this.theta - alpha));
+    move(Math.max(100 * max_ps, speed), Math.max(100 * max_ps, speed));
+}
+System.out.println("Orientation: "+this.theta + ConsoleColors.RESET);
+}
+
+public void backwards(){
+System.out.println(ConsoleColors.BLUE+"Decision: Backwards");
+double min_ps = 9999.0;
+for(Voisin voisin: this.voisins){
+    double produit_scalaire= (voisin.get_x()-this.x) * Math.cos(alpha) + (voisin.get_y()-this.y)*Math.sin(alpha);
+    if(produit_scalaire < min_ps){
+        min_ps = produit_scalaire;	
+    }
+}
+System.out.println("Produit scalaire Min: "+min_ps);
+if(Math.abs(this.theta - alpha) > this.epsilon){
+           System.out.println("Orientation: "+this.theta +" Je me tourne vers Cible: "+ alpha+" Ecart: " + Math.abs(this.theta - alpha));
+             move(rotate, -rotate);
+    }
+else {
+System.out.println("Orientation: "+this.theta +" Cible: "+ alpha+" Ecart: " + Math.abs(this.theta - alpha));
+    
+    move(-Math.max(-100 * min_ps, speed), -Math.max(-100 * min_ps, speed));
+}
+System.out.println("Orientation: "+this.theta + ConsoleColors.RESET);
+}
+
+

@@ -26,11 +26,11 @@
 
 
 #define TIME_STEP 256
-#define NB_EPUCK 10
+#define NB_EPUCK 2
 #define ARENA_SIZE 100
 #define RANGE_DETECTION 0.36
 #define RANDOM true
-#define R_FoV 50
+#define R_FoV 1
 
 #define MSG_SIZE 128
 
@@ -155,8 +155,8 @@ void random_position(void)
     double angle = random_between(-314, 314);
     for (; n < NB_EPUCK; n++){
       
-      p[0] = 0.5 * random_between(-ARENA_SIZE, ARENA_SIZE); // * cos(angle + n * 2*M_PI / NB_EPUCK);
-      p[1] = 0.5 * random_between(-ARENA_SIZE, ARENA_SIZE); //* sin(angle + n * 2*M_PI / NB_EPUCK);
+      p[0] = 0.5 * cos(angle + n * 2*M_PI / NB_EPUCK); ;// random_between(-ARENA_SIZE, ARENA_SIZE); // 
+      p[1] = 0.5 * sin(angle + n * 2*M_PI / NB_EPUCK); ;//random_between(-ARENA_SIZE, ARENA_SIZE); //
 
       r[3] = cos(random_between(-314, 314));
 

@@ -14,7 +14,7 @@ Background {
 }
 RectangleArena {
   rotation 0 1 0 0
-  floorSize 10 10
+  floorSize 50 50
 }
 Robot {
   rotation 0 1 0 0

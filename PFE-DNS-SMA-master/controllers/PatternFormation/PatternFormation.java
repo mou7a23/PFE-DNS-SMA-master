@@ -1,6 +1,7 @@
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import javax.lang.model.util.ElementScanner6;
 
@@ -33,9 +34,9 @@ public class PatternFormation extends Robot {
 	private double rotate = 5;
 	public int NB_EPUCK = 33;
 	// private String robID;
-    double alpha = Math.toRadians(0); // l'angle génératrice du vecteur F en radians
+    double alpha = Math.toRadians(90); // l'angle génératrice du vecteur F en radians
 	double deadAheadWidth = Math.toRadians(15); // l'angle de dead ahead en radians; zone 'C' [0, 18]
-	double r_avoid = 0.3; // le rayon de la zone A
+	double r_avoid = 0.1; // le rayon de la zone A
 	double gamma_avoid = Math.toRadians(130);
 	double epsilon = 0.05*Math.PI;//Math.toRadians(10); // paramètre à régler empiriquement.
 
@@ -287,41 +288,130 @@ public class PatternFormation extends Robot {
 		double e = this.epsilon;
 		double pi_2 = Math.PI/2;
 		double deadAheadAngle = this.deadAheadWidth;
-		double x = this.x, y = this.y, x_v, y_v;
+		double x_r = this.x, y_r = this.y, x_v, y_v;
 		double dist;
 		double ang;
 		boolean activeA = false, activeB = false, activeC = false, activeD = false;
 		for(Voisin voisin: this.voisins){
 			x_v = voisin.get_x();
 			y_v = voisin.get_y();
-			dist = distance(x, y, x_v, y_v);
-			ang = Math.atan2(x_v, y_v);
+			dist = distance(x_r, y_r, x_v, y_v);
+			ang = Math.atan2(x_v-x_r, y_v-y_r);
 			if(dist < r_zone_A){
 				activeA = true;
-				System.out.println(ConsoleColors.RED+"Zone A avtivée par: "+voisin.get_name()+ConsoleColors.RESET);
-			} else if(Math.abs(ang) < deadAheadAngle){
-				System.out.println(ConsoleColors.GREEN+"Zone C avtivée par: "+voisin.get_name()+" ang = "+Math.abs(ang)+ConsoleColors.RESET);
+				System.out.println(ConsoleColors.RED+"Zone A avtivée par: "+voisin.get_name()+"("+voisin.get_x()+", "+voisin.get_y()+")"+ConsoleColors.RESET);
+			} else if(Math.abs(ang - f) < deadAheadAngle){
+				System.out.println(ConsoleColors.GREEN+"Zone C avtivée par: "+voisin.get_name()+"("+voisin.get_x()+", "+voisin.get_y()+")"+" ang = "+Math.abs(ang)+ConsoleColors.RESET);
 				activeC = true;
-			} else if(Math.cos(ang) > 0.01){ // 0.01 intervalle de tolérence pour permettre aux robots de s'arreter lorsqu'ils soient un à coté de l'autre sur la ligne
-				System.out.println(ConsoleColors.YELLOW+"Zone B avtivée par: "+voisin.get_name()+" ang = "+Math.cos(ang - alpha)+ConsoleColors.RESET);
+			} else if(Math.cos(ang - f-Math.PI/2) > 0.01){ // 0.01 intervalle de tolérence pour permettre aux robots de s'arreter lorsqu'ils soient un à coté de l'autre sur la ligne
+				System.out.println(ConsoleColors.YELLOW+"Zone B avtivée par: "+voisin.get_name()+"("+voisin.get_x()+", "+voisin.get_y()+")"+" ang = "+Math.cos(ang - f)+ConsoleColors.RESET);
 				activeB = true;
-			} else if(Math.cos(ang) < -0.01){
-				System.out.println(ConsoleColors.BLUE+"Zone D avtivée par: "+voisin.get_name()+ConsoleColors.RESET);
+			} else if(Math.cos(ang - f-Math.PI/2) < -0.01){
+				System.out.println(ConsoleColors.BLUE+"Zone D avtivée par: "+voisin.get_name()+"("+voisin.get_x()+", "+voisin.get_y()+")"+ConsoleColors.RESET);
 				activeD = true;
-			}			
+			}		
 		}
 		if(activeA){
 			System.out.println(ConsoleColors.RED+"Decision: Avoid Collision Behaviour"+ConsoleColors.RESET);
+			avoid_collision();
 		} else if(activeC){
 			System.out.println(ConsoleColors.GREEN+"Decision: Alter Course Behaviour"+ConsoleColors.RESET);
+			alter_course();
 		} else if(activeB){
 			System.out.println(ConsoleColors.YELLOW+"Decision: Forward Behaviour"+ConsoleColors.RESET);
+			forward();
 		} else if(activeD){
 			System.out.println(ConsoleColors.BLUE+"Decision: Backwards Behaviour"+ConsoleColors.RESET);
+			backwards();
 		} else{
 			System.out.println(ConsoleColors.RED_BOLD+"Decision: Stop Behaviour"+ConsoleColors.RESET);
+			stop();
 		}
 	}
+
+	//////////////////////// Actions ///////////////////////////////////:
+
+	public void stop(){
+		System.out.println(ConsoleColors.PURPLE+"Decision: Stop"+ConsoleColors.RESET);
+		move(0, 0);	
+	}
+			
+	public void avoid_collision(){ // Done: en utilisant la répulsion
+		double res_x = 0.0, res_y = 0.0;
+		double x_v=0.0, y_v=0.0;
+		int voisinA = 0;
+		for(Voisin voisin: voisins){
+			if(distance(this.x, this.y, voisin.get_x(), voisin.get_y()) < r_avoid){
+				x_v = - voisin.get_x();
+				y_v = - voisin.get_y();
+				res_x += x_v/distance(this.x, this.y, voisin.get_x(), voisin.get_y());
+				res_y += y_v/distance(this.x, this.y, voisin.get_x(), voisin.get_y());
+				voisinA ++;	
+			}
+		}
+		if(voisinA>0){
+			res_x = 0.5 * (res_x / voisinA);
+			res_y = 0.5 * (res_y / voisinA);
+			double angle = Math.acos(-1*(y_v/distance(this.x, this.y, res_x, res_y))) - Math.PI/2;
+			move(speed*(1+angle/(Math.PI/2)), speed *(1-angle/(Math.PI/2)));//move(speed, speed *(1-angle/(Math.PI/2)));
+		} else{
+			move(0, 0);
+		}
+
+	}
+	
+	public void alter_course(){
+		double res_x = 0.0, res_y = 0.0;
+		res_x = 1;
+		res_y = 0;
+		double angle = Math.acos(-1*(50/distance(this.x, this.y, 0, 50))) - Math.PI/2;
+		if(Math.abs(this.theta - this.alpha) > 0.05){
+			move(speed*(1+angle/(Math.PI/2)), speed *(1-angle/(Math.PI/2)));
+		}
+		else{
+			move(speed, speed);
+		}
+		
+	}
+	
+	public void forward(){
+		double max_ps = -9999.0;
+		for(Voisin voisin: this.voisins){
+			double produit_scalaire= (voisin.get_x()-this.x) * Math.cos(alpha) + (voisin.get_y()-this.y)*Math.sin(alpha)/distance(voisin.get_x()-this.x, voisin.get_y()-this.y, Math.cos(alpha), Math.sin(alpha));
+			if(produit_scalaire > max_ps){
+				max_ps = produit_scalaire;	
+			}
+		}
+		System.out.println("Produit Scalaire Max: "+max_ps);
+		double angle = Math.acos(-1*(50/distance(this.x, this.y, 50, 0))) - Math.PI/2;
+		if(Math.abs(this.theta - this.alpha+Math.PI/2) > 0.05){
+			move(speed*(1+angle/(Math.PI/2)), speed *(1-angle/(Math.PI/2)));
+		}
+		else{
+			move(Math.abs(max_ps) * 100, Math.abs(max_ps) * 100);
+		}
+	}
+	
+	public void backwards(){
+		double min_ps = 9999.0;
+		for(Voisin voisin: this.voisins){
+			double produit_scalaire= (voisin.get_x()-this.x) * Math.cos(alpha) + (voisin.get_y()-this.y)*Math.sin(alpha)/distance(voisin.get_x()-this.x, voisin.get_y()-this.y, Math.cos(alpha), Math.sin(alpha));
+			if(produit_scalaire < min_ps){
+				min_ps = produit_scalaire;	
+			}
+		}
+		System.out.println("Produit Scalaire Min: "+min_ps);
+		double angle = Math.acos(-1*(50/distance(this.x, this.y, 0, 50))) - Math.PI/2;
+		if(Math.abs(this.theta - this.alpha+Math.PI/2) > 0.05){
+			move(speed*(1+angle/(Math.PI/2)), speed *(1-angle/(Math.PI/2)));
+		}
+		else{
+			move(-1 * Math.abs(min_ps) * 100, -1 * Math.abs(min_ps) * 100);
+		}
+	}
+	
+
+	////////////////////////////////////////////////////////////////////;
 
 	// La fonction sert à enregistrer les données des robots dans un fichier texte.
 	public void writeToFile(String message){
