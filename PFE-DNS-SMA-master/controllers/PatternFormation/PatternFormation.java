@@ -37,7 +37,7 @@ public class PatternFormation extends Robot {
     double alpha = Math.toRadians(90); // l'angle génératrice du vecteur F en radians
 	double deadAheadWidth = Math.toRadians(18); // l'angle de dead ahead en radians; zone 'C' [0, 18]
 	double r_avoid = 0.1; // le rayon de la zone A
-	double epsilon = Math.PI/12;// paramètre à régler empiriquement.
+	double epsilon = Math.PI/24;// paramètre à régler empiriquement.
 
 	double x, y, theta;
 	// List of neighbours
@@ -313,7 +313,7 @@ public class PatternFormation extends Robot {
 		}
 		if(activeA){
 			System.out.println(ConsoleColors.RED+"Decision: Avoid Collision Behaviour"+ConsoleColors.RESET);
-			// avoid_collision();
+			avoid_collision();
 		} else if(activeC){
 			System.out.println(ConsoleColors.GREEN+"Decision: Alter Course Behaviour"+ConsoleColors.RESET);
 			alter_course();
@@ -340,17 +340,23 @@ public class PatternFormation extends Robot {
 		double x_v = closest.get_x() - this.x;
 		double y_v = closest.get_y() - this.y;
 		double angle = Math.atan2(y_v, x_v);
-		if(Math.sin(this.theta - angle) < 0.5){
-			
+		if(Math.abs(angle) > Math.PI/4){
+			move(speed, speed);	
+		} else if(angle < - 0.1){
+			move(+rotate, -rotate);
+		} else if(angle > 0.1){
+			move(-rotate, +rotate);
+		} else{
+			move(-speed, -speed);
 		}
 	}
 	
 	public void alter_course(){
 		if(Math.abs(this.theta) > this.alpha + epsilon){
-			System.out.println("Theta: "+this.theta+"> Alpha: "+this.alpha+" + epsilon: "+this.epsilon);
+			System.out.println("Theta > Alpha: "+Math.abs(this.theta)+" > "+this.alpha+" + epsilon: "+this.epsilon);
 			move(+rotate, -rotate);
 		} else if(Math.abs(this.theta) < this.alpha - epsilon){
-			System.out.println("Theta: "+this.theta+"< Alpha: "+this.alpha+" - epsilon: "+this.epsilon);
+			System.out.println("Theta < Alpha: "+Math.abs(this.theta)+" < "+this.alpha+" - epsilon: "+this.epsilon);
 			move(-rotate, +rotate);
 		} 
 		else {
@@ -370,12 +376,13 @@ public class PatternFormation extends Robot {
 		}
 		System.out.println("Speed: "+vitesse+" max_ps = "+max_ps);
 		if(Math.abs(this.theta) > (this.alpha + Math.PI/2) + epsilon){
-			System.out.println("Theta: "+this.theta+"> alpha+e "+(Math.PI/2 + this.alpha+this.epsilon));
+			System.out.println("Theta > alpha+e: "+Math.abs(this.theta)+" > "+(Math.PI/2 + this.alpha+this.epsilon));
 			move(+rotate, -rotate);
 		} else if(Math.abs(this.theta) < (this.alpha+ Math.PI/2) - epsilon){
-			System.out.println("Theta: "+this.theta+"< alpha-e "+(Math.PI/2 + this.alpha+this.epsilon));
+			System.out.println("Theta < alpha-e: "+Math.abs(this.theta)+" < "+(Math.PI/2 + this.alpha+this.epsilon));
 			move(-rotate, +rotate);
 		} else {
+			
 			move(vitesse * 100, vitesse * 100);
 		}	
 		
@@ -393,14 +400,15 @@ public class PatternFormation extends Robot {
 		}
 		System.out.println("Speed: "+vitesse+" min_ps = "+min_ps);
 		if(Math.abs(this.theta) > (this.alpha + Math.PI/2) + epsilon){
-			System.out.println("Theta: "+this.theta+"> alpha+e "+(Math.PI/2 + this.alpha+this.epsilon));
+			System.out.println("Theta > alpha+e: "+this.theta+" > "+(Math.PI/2 + this.alpha+this.epsilon));
 			move(+rotate, -rotate);
 		}else if(Math.abs(this.theta) < (this.alpha + Math.PI/2) - epsilon){
-			System.out.println("Theta: "+this.theta+"< alpha-e "+(Math.PI/2 + this.alpha+this.epsilon));
+			System.out.println("Theta < alpha-e: "+this.theta+" < "+(Math.PI/2 + this.alpha+this.epsilon));
 			move(-rotate, +rotate);
 		}else{
-			//move(vitesse * 100, vitesse * 100);
-			move(-speed, -speed);
+			System.out.println("Theta ~ alpha & Vitesse: "+(vitesse*100));
+			move(vitesse * 100, vitesse * 100);
+			//move(-speed, -speed);
 		}
 	}
 	
