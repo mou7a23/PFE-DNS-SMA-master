@@ -26,11 +26,12 @@
 
 
 #define TIME_STEP 256
-#define NB_EPUCK 2
+#define NB_EPUCK 10
 #define ARENA_SIZE 100
 #define RANGE_DETECTION 0.36
 #define RANDOM true
-#define R_FoV 1
+#define R_FoV 2.0
+#define R_DEPLOY 1.0
 
 #define MSG_SIZE 128
 
@@ -155,10 +156,10 @@ void random_position(void)
     double angle = random_between(-314, 314);
     for (; n < NB_EPUCK; n++){
       
-      p[0] = 0.5 * cos(angle + n * 2*M_PI / NB_EPUCK); ;// random_between(-ARENA_SIZE, ARENA_SIZE); // 
-      p[1] = 0.5 * sin(angle + n * 2*M_PI / NB_EPUCK); ;//random_between(-ARENA_SIZE, ARENA_SIZE); //
+      p[0] = R_DEPLOY * cos(angle + n * 2*M_PI / NB_EPUCK); ;// random_between(-ARENA_SIZE, ARENA_SIZE); // 
+      p[1] = R_DEPLOY * sin(angle + n * 2*M_PI / NB_EPUCK); ;//random_between(-ARENA_SIZE, ARENA_SIZE); //
 
-      r[3] = cos(random_between(-314, 314));
+      r[3] = random_between(-314, 314);
 
       wb_supervisor_field_set_sf_vec3f(trans_field[n], p);
       wb_supervisor_field_set_sf_rotation(rttn_field[n], r);
