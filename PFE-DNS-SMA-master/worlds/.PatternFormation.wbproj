@@ -8,13 +8,13 @@ centralWidgetVisible: 1
 orthographicViewHeight: 1
 textFiles: 0 "controllers/PatternFormation/PatternFormation.java" "controllers/Supervisor/Supervisor.c" "controllers/PatternFormation/Voisin.java"
 consoles: Console:All:All
-renderingDevicePerspectives: epuck0:camera;1;1;0;0
-renderingDevicePerspectives: epuck1:camera;1;1;0;0
-renderingDevicePerspectives: epuck2:camera;1;1;0;0
-renderingDevicePerspectives: epuck3:camera;1;1;0;0
-renderingDevicePerspectives: epuck4:camera;1;1;0;0
-renderingDevicePerspectives: epuck5:camera;1;1;0;0
-renderingDevicePerspectives: epuck6:camera;1;1;0;0
-renderingDevicePerspectives: epuck7:camera;1;1;0;0
-renderingDevicePerspectives: epuck8:camera;1;1;0;0
-renderingDevicePerspectives: epuck9:camera;1;1;0;0
+renderingDevicePerspectives: epuckA:camera;1;1;0;0
+renderingDevicePerspectives: epuckB:camera;1;1;0;0
+renderingDevicePerspectives: epuckC:camera;1;1;0;0
+renderingDevicePerspectives: epuckD:camera;1;1;0;0
+renderingDevicePerspectives: epuckE:camera;1;1;0;0
+renderingDevicePerspectives: epuckF:camera;1;1;0;0
+renderingDevicePerspectives: epuckG:camera;1;1;0;0
+renderingDevicePerspectives: epuckH:camera;1;1;0;0
+renderingDevicePerspectives: epuckI:camera;1;1;0;0
+renderingDevicePerspectives: epuckJ:camera;1;1;0;0

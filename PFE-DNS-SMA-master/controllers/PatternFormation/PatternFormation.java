@@ -383,9 +383,9 @@ public class PatternFormation extends Robot {
 			 produit_scalaire = (voisin.get_x()-this.x) * Math.cos(f) + (voisin.get_y()-this.y)*Math.sin(f);
 			if(produit_scalaire > max_ps){
 				max_ps = produit_scalaire;
-				vitesse = produit_scalaire / distance(voisin.get_x()-this.x, voisin.get_y()-this.y, Math.cos(f), Math.sin(f));
 			}
 		}
+		vitesse = max_ps * 100;
 		System.out.println("Speed: "+vitesse+" max_ps = "+max_ps);
 		if(Math.abs(this.theta) > Math.abs(f) + epsilon){
 			System.out.println("Theta > alpha+e: "+Math.abs(this.theta)+" > "+(f+this.epsilon));
@@ -394,9 +394,9 @@ public class PatternFormation extends Robot {
 			System.out.println("Theta < alpha-e: "+Math.abs(this.theta)+" < "+(f+this.epsilon));
 			move(-rotate, +rotate);
 		} else {
-			System.out.println("Theta ~ alpha & Vitesse: "+(vitesse*100));
-			move(+Math.abs(100*vitesse), +Math.abs(100*vitesse));
-			//move(100*vitesse, 100*vitesse);
+			System.out.println("Theta ~ alpha & Vitesse: "+vitesse);
+			move(+Math.abs(vitesse), +Math.abs(vitesse));
+			//move(vitesse, vitesse);
 		} 
 		
 	}
@@ -410,9 +410,9 @@ public class PatternFormation extends Robot {
 			produit_scalaire = (voisin.get_x()-this.x) * Math.cos(f) + (voisin.get_y()-this.y)*Math.sin(f);
 			if(produit_scalaire < min_ps){
 				min_ps = produit_scalaire;
-				vitesse = produit_scalaire / distance(voisin.get_x()-this.x, voisin.get_y()-this.y, Math.cos(f), Math.sin(f));	
 			}
 		}
+		vitesse = min_ps * 100;
 		System.out.println("Speed: "+vitesse+" min_ps = "+min_ps);
 		if(Math.abs(this.theta) > Math.abs(f) + epsilon){
 			System.out.println("Theta > alpha+e: "+this.theta+" > "+(f+this.epsilon));
@@ -421,9 +421,9 @@ public class PatternFormation extends Robot {
 			System.out.println("Theta < alpha-e: "+this.theta+" < "+(f+this.epsilon));
 			move(-rotate, +rotate);
 		} else {
-			System.out.println("Theta ~ alpha & Vitesse: "+(vitesse*100));
-			move(-Math.abs(100*vitesse), -Math.abs(100*vitesse));
-			//move(100*vitesse, 100*vitesse);
+			System.out.println("Theta ~ alpha & Vitesse: "+vitesse);
+			move(-Math.abs(vitesse), -Math.abs(vitesse));
+			//move(vitesse, vitesse);
 		} 
 	}
 	

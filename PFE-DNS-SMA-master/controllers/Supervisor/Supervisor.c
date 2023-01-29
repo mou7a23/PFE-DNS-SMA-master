@@ -1,11 +1,11 @@
 /*
  * File:          supervisor_efficacite.c
- * Date: 25/05/2022
+ * Date: 25/05/2022 by Nolwenn
  * Description: This supervisor places all robots randomly. The robots must be in the world and
  *              have a DEF. If all robots have found the target, the supervisor pause 
  *              the simulation. It also calculate the efficiency of the program : sum of the distance at_the beginning of
  *              simulation of each robot and the target / sum of distance traveled by each robot.
- * Author: Nolwenn
+ * Author: Mohamed & Maguette
  * Modifications: Le 19/01/2023
  * 
  */
@@ -26,11 +26,11 @@
 
 
 #define TIME_STEP 256
-#define NB_EPUCK 10
+#define NB_EPUCK 7
 #define ARENA_SIZE 100
 #define RANGE_DETECTION 0.36
 #define RANDOM true
-#define R_FoV 2.5
+#define R_FoV 15
 #define R_DEPLOY 1.0
 
 #define MSG_SIZE 128
@@ -71,7 +71,7 @@ double random_between(int min, int max)
 void set_robots(void)
 {
   // Name of the robot we are linking.
-  char rob[7] = "epuck0";
+  char rob[7] = "epuckA";
   char def[30] = "DEF ";
   int i = 0;
    
@@ -118,7 +118,7 @@ void random_position(void)
   double p[3] = {0, 0, 0};
   double r[4] = {0, 0, 1, 0};
   bool synch=true;
-  char rob[8] = "epuck0";
+  char rob[8] = "epuckA";
   
   if(! RANDOM){
   double x=0.12;
@@ -145,9 +145,10 @@ void random_position(void)
     wb_supervisor_field_set_sf_string(controller_field[n], "PatternFormation");
     wb_supervisor_field_set_sf_string(name_field[n], rob);
     wb_supervisor_field_set_sf_bool(synch_field[n],synch);
+    printf("Robot: %s (x = %f, y = %f, theta = %f)\n", rob, p[0], p[1], r[3]);       
     rob[5]++;
 
-    printf("Robot: %s (x = %f, y = %f, theta = %f)\n", rob, p[0], p[1], r[3]);        
+     
   }
   }
   else{
@@ -158,7 +159,6 @@ void random_position(void)
       
       p[0] = R_DEPLOY * cos(angle + n * 2*M_PI / NB_EPUCK); ;// random_between(-ARENA_SIZE, ARENA_SIZE); // 
       p[1] = R_DEPLOY * sin(angle + n * 2*M_PI / NB_EPUCK); ;//random_between(-ARENA_SIZE, ARENA_SIZE); //
-
       r[3] = random_between(-314, 314);
 
       wb_supervisor_field_set_sf_vec3f(trans_field[n], p);
@@ -168,9 +168,8 @@ void random_position(void)
       wb_supervisor_field_set_sf_string(controller_field[n], "PatternFormation");
       wb_supervisor_field_set_sf_string(name_field[n], rob);
       wb_supervisor_field_set_sf_bool(synch_field[n],synch);
-      rob[5]++;
-      
-      printf("Robot: %s (x = %f, y = %f, theta = %f)\n", rob, p[0], p[1], r[3]);        
+      printf("Robot: %s (x = %f, y = %f, theta = %f)\n", rob, p[0], p[1], r[3]);
+      rob[5]++;             
     }
   
 }
@@ -222,7 +221,7 @@ int send_message(int robot_index){
       const double *values_robots[NB_EPUCK], *rotations[NB_EPUCK];
       double x, y;
       double theta;
-      char  rob[7] = "epuck0", message[1024] = "";//, data[256] = "";
+      char  rob[7] = "epuckA", message[1024] = "";//, data[256] = "";
       char sep[2] = ",", end[2] = ";";
       int success = 0;
       int i = 0;
