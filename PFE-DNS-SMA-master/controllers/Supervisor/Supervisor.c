@@ -26,11 +26,11 @@
 
 
 #define TIME_STEP 256
-#define NB_EPUCK 6
+#define NB_EPUCK 10
 #define ARENA_SIZE 100
 #define RANGE_DETECTION 0.36
 #define RANDOM true
-#define R_FoV 2.0
+#define R_FoV 2.5
 #define R_DEPLOY 1.0
 
 #define MSG_SIZE 128
@@ -233,7 +233,7 @@ int send_message(int robot_index){
         // données à envoyer:
         x = values_robots[i][0];
         y = values_robots[i][1];
-        theta = rotations[i][3];
+        theta = rotations[i][3] * rotations[i][2];
         double _distance = distance(values_robot[0], values_robot[1], x, y);
 
         if(_distance < R_FoV){

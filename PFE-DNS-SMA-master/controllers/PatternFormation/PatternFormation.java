@@ -34,7 +34,7 @@ public class PatternFormation extends Robot {
 	private double rotate = 10;
 	public int NB_EPUCK = 33;
 	// private String robID;
-    double alpha = Math.toRadians(90); // l'angle génératrice du vecteur F en radians
+    double alpha = Math.toRadians(0); // l'angle génératrice du vecteur F en radians
 	double deadAheadWidth = Math.toRadians(18); // l'angle de dead ahead en radians; zone 'C' [0, 18]
 	double r_avoid = 0.1; // le rayon de la zone A
 	double epsilon = Math.PI/24;// paramètre à régler empiriquement.
@@ -112,6 +112,16 @@ public class PatternFormation extends Robot {
 	 */
 	protected void move(double left, double right) {
 		double max=6.2;
+		// eviter d'avoir des vitesse qui dépassent la vitesse max
+		if(left >= 0)
+			left = Math.min(left, 100);
+		else
+			left = Math.max(left, -100);
+			if(right >= 0)
+			right = Math.min(right, 100);
+		else
+			right = Math.max(right, -100);
+		
 		getMotor("left wheel motor").setVelocity(left * max / 100);
 		getMotor("right wheel motor").setVelocity(right * max / 100);
 	}
@@ -353,11 +363,11 @@ public class PatternFormation extends Robot {
 	
 	public void alter_course(){
 		double f = this.alpha - Math.PI/2; // alpha = f + PI/2
-		if(Math.abs(this.theta-(f+Math.PI/2)) > + epsilon){
-			System.out.println("Theta > Alpha: "+Math.abs(this.theta)+" > "+this.alpha+" + epsilon: "+this.epsilon);
+		if(Math.abs(this.theta) > Math.abs(f+Math.PI/2) + epsilon){
+			System.out.println("Theta > Alpha + epsilon: "+Math.abs(this.theta)+" > "+(Math.abs(f+Math.PI/2)+this.epsilon));
 			move(+rotate, -rotate);
 		} else if(Math.abs(this.theta) < Math.abs(f+Math.PI/2) - epsilon){
-			System.out.println("Theta < Alpha: "+Math.abs(this.theta)+" < "+this.alpha+" - epsilon: "+this.epsilon);
+			System.out.println("Theta < Alpha - epsilon: "+Math.abs(this.theta)+" < "+(Math.abs(f+Math.PI/2)-this.epsilon));
 			move(-rotate, +rotate);
 		} else {
 		move(speed, speed);	
@@ -370,10 +380,10 @@ public class PatternFormation extends Robot {
 		double vitesse = 0;
 		double produit_scalaire = 0;
 		for(Voisin voisin: this.voisins){
-			 produit_scalaire = (voisin.get_x()-this.x) * Math.cos(alpha) + (voisin.get_y()-this.y)*Math.sin(alpha);
+			 produit_scalaire = (voisin.get_x()-this.x) * Math.cos(f) + (voisin.get_y()-this.y)*Math.sin(f);
 			if(produit_scalaire > max_ps){
 				max_ps = produit_scalaire;
-				vitesse = produit_scalaire / distance(voisin.get_x()-this.x, voisin.get_y()-this.y, Math.cos(alpha), Math.sin(alpha));
+				vitesse = produit_scalaire / distance(voisin.get_x()-this.x, voisin.get_y()-this.y, Math.cos(f), Math.sin(f));
 			}
 		}
 		System.out.println("Speed: "+vitesse+" max_ps = "+max_ps);
@@ -385,7 +395,8 @@ public class PatternFormation extends Robot {
 			move(-rotate, +rotate);
 		} else {
 			System.out.println("Theta ~ alpha & Vitesse: "+(vitesse*100));
-			move(100*vitesse, 100*vitesse);
+			move(+Math.abs(100*vitesse), +Math.abs(100*vitesse));
+			//move(100*vitesse, 100*vitesse);
 		} 
 		
 	}
@@ -396,10 +407,10 @@ public class PatternFormation extends Robot {
 		double vitesse = 0;
 		double produit_scalaire = 0;
 		for(Voisin voisin: this.voisins){
-			produit_scalaire = (voisin.get_x()-this.x) * Math.cos(alpha) + (voisin.get_y()-this.y)*Math.sin(alpha);
+			produit_scalaire = (voisin.get_x()-this.x) * Math.cos(f) + (voisin.get_y()-this.y)*Math.sin(f);
 			if(produit_scalaire < min_ps){
 				min_ps = produit_scalaire;
-				vitesse = produit_scalaire / distance(voisin.get_x()-this.x, voisin.get_y()-this.y, Math.cos(alpha), Math.sin(alpha));	
+				vitesse = produit_scalaire / distance(voisin.get_x()-this.x, voisin.get_y()-this.y, Math.cos(f), Math.sin(f));	
 			}
 		}
 		System.out.println("Speed: "+vitesse+" min_ps = "+min_ps);
@@ -411,7 +422,8 @@ public class PatternFormation extends Robot {
 			move(-rotate, +rotate);
 		} else {
 			System.out.println("Theta ~ alpha & Vitesse: "+(vitesse*100));
-			move(100*vitesse, 100*vitesse);
+			move(-Math.abs(100*vitesse), -Math.abs(100*vitesse));
+			//move(100*vitesse, 100*vitesse);
 		} 
 	}
 	
@@ -439,7 +451,7 @@ public class PatternFormation extends Robot {
 	public void run() {
 		// Affectation de groupes aux robots
 		// boolean in = false;
-		// String[] names = {"epuck0", "epuck1", "epuck2"};//, "epuck3", "epuck4", "epuck5", "epuck6", "epuck7", "epuck8", "epuck9"};
+		// String[] names = {"epuck0", "epuck1", "epuck2", "epuck3"};//, "epuck4", "epuck5", "epuck6", "epuck7", "epuck8", "epuck9"};
 		// for(String name: names){
 		// 		if(name.equals(this.getName()))
 		// 			in = true;
@@ -450,7 +462,7 @@ public class PatternFormation extends Robot {
 		// 	this.alpha = Math.toRadians(-45);
 		// }
 		while (step(timeStep) != -1) {
-          	System.out.println("Robot's name: " +this.getName()+"("+this.x+", "+this.y+")");
+          	System.out.println("############## Robot's name: " +this.getName()+"("+this.x+", "+this.y+") Orien: "+this.theta+" ########");
 			String message;
 			Boolean obstacle;
 			obstacle = checkAndAvoidObstacle();
