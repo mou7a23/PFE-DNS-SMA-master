@@ -26,7 +26,7 @@
 
 
 #define TIME_STEP 256
-#define NB_EPUCK 8
+#define NB_EPUCK 6
 #define ARENA_SIZE 100
 #define RANGE_DETECTION 0.36
 #define RANDOM true

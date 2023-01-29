@@ -301,11 +301,11 @@ public class PatternFormation extends Robot {
 				if(!activeC)
 					System.out.println(ConsoleColors.GREEN+"Zone C avtivée par: "+voisin.get_name()+"("+voisin.get_x()+", "+voisin.get_y()+")"+" ang = "+Math.abs(ang)+ConsoleColors.RESET);
 				activeC = true;
-			} else if(Math.cos(ang - f) > 0.01){ // 0.01 intervalle de tolérence pour permettre aux robots de s'arreter lorsqu'ils soient un à coté de l'autre sur la ligne
+			} else if(Math.cos(ang - f) > 0.05){ // 0.01 intervalle de tolérence pour permettre aux robots de s'arreter lorsqu'ils soient un à coté de l'autre sur la ligne
 				if(!activeB)
 					System.out.println(ConsoleColors.YELLOW+"Zone B avtivée par: "+voisin.get_name()+"("+voisin.get_x()+", "+voisin.get_y()+")"+" ang = "+Math.cos(ang - f)+ConsoleColors.RESET);
 				activeB = true;
-			} else if(Math.cos(ang - f) < -0.01){
+			} else if(Math.cos(ang - f) < -0.05){
 				if(!activeD)
 					System.out.println(ConsoleColors.BLUE+"Zone D avtivée par: "+voisin.get_name()+"("+voisin.get_x()+", "+voisin.get_y()+")"+ConsoleColors.RESET);
 				activeD = true;
@@ -352,64 +352,67 @@ public class PatternFormation extends Robot {
 	}
 	
 	public void alter_course(){
-		if(Math.abs(this.theta) > this.alpha + epsilon){
+		double f = this.alpha - Math.PI/2; // alpha = f + PI/2
+		if(Math.abs(this.theta-(f+Math.PI/2)) > + epsilon){
 			System.out.println("Theta > Alpha: "+Math.abs(this.theta)+" > "+this.alpha+" + epsilon: "+this.epsilon);
 			move(+rotate, -rotate);
-		} else if(Math.abs(this.theta) < this.alpha - epsilon){
+		} else if(Math.abs(this.theta) < Math.abs(f+Math.PI/2) - epsilon){
 			System.out.println("Theta < Alpha: "+Math.abs(this.theta)+" < "+this.alpha+" - epsilon: "+this.epsilon);
 			move(-rotate, +rotate);
-		} 
-		else {
+		} else {
 		move(speed, speed);	
 		}	
 	}
 	
 	public void forward(){
+		double f = this.alpha - Math.PI/2; // alpha = f + PI/2 ==> 
 		double max_ps = -9999.0;
 		double vitesse = 0;
+		double produit_scalaire = 0;
 		for(Voisin voisin: this.voisins){
-			double produit_scalaire = (voisin.get_x()-this.x) * Math.cos(alpha+Math.PI/2) + (voisin.get_y()-this.y)*Math.sin(alpha+Math.PI/2);
+			 produit_scalaire = (voisin.get_x()-this.x) * Math.cos(alpha) + (voisin.get_y()-this.y)*Math.sin(alpha);
 			if(produit_scalaire > max_ps){
 				max_ps = produit_scalaire;
 				vitesse = produit_scalaire / distance(voisin.get_x()-this.x, voisin.get_y()-this.y, Math.cos(alpha), Math.sin(alpha));
 			}
 		}
 		System.out.println("Speed: "+vitesse+" max_ps = "+max_ps);
-		if(Math.abs(this.theta) > (this.alpha + Math.PI/2) + epsilon){
-			System.out.println("Theta > alpha+e: "+Math.abs(this.theta)+" > "+(Math.PI/2 + this.alpha+this.epsilon));
+		if(Math.abs(this.theta) > Math.abs(f) + epsilon){
+			System.out.println("Theta > alpha+e: "+Math.abs(this.theta)+" > "+(f+this.epsilon));
 			move(+rotate, -rotate);
-		} else if(Math.abs(this.theta) < (this.alpha+ Math.PI/2) - epsilon){
-			System.out.println("Theta < alpha-e: "+Math.abs(this.theta)+" < "+(Math.PI/2 + this.alpha+this.epsilon));
+		} else if(Math.abs(this.theta) < Math.abs(f) - epsilon){
+			System.out.println("Theta < alpha-e: "+Math.abs(this.theta)+" < "+(f+this.epsilon));
 			move(-rotate, +rotate);
 		} else {
-			
-			move(vitesse * 100, vitesse * 100);
-		}	
+			System.out.println("Theta ~ alpha & Vitesse: "+(vitesse*100));
+			move(100*vitesse, 100*vitesse);
+		} 
 		
 	}
 	
 	public void backwards(){
+		double f = this.alpha - Math.PI/2; // alpha = f + PI/2 ==> 
 		double min_ps = 9999.0;
 		double vitesse = 0;
+		double produit_scalaire = 0;
 		for(Voisin voisin: this.voisins){
-			double produit_scalaire= (voisin.get_x()-this.x) * Math.cos(alpha+Math.PI/2) + (voisin.get_y()-this.y)*Math.sin(alpha+Math.PI/2)/distance(voisin.get_x()-this.x, voisin.get_y()-this.y, Math.cos(alpha), Math.sin(alpha));
+			produit_scalaire = (voisin.get_x()-this.x) * Math.cos(alpha) + (voisin.get_y()-this.y)*Math.sin(alpha);
 			if(produit_scalaire < min_ps){
 				min_ps = produit_scalaire;
 				vitesse = produit_scalaire / distance(voisin.get_x()-this.x, voisin.get_y()-this.y, Math.cos(alpha), Math.sin(alpha));	
 			}
 		}
 		System.out.println("Speed: "+vitesse+" min_ps = "+min_ps);
-		if(Math.abs(this.theta) > (this.alpha + Math.PI/2) + epsilon){
-			System.out.println("Theta > alpha+e: "+this.theta+" > "+(Math.PI/2 + this.alpha+this.epsilon));
+		if(Math.abs(this.theta) > Math.abs(f) + epsilon){
+			System.out.println("Theta > alpha+e: "+this.theta+" > "+(f+this.epsilon));
 			move(+rotate, -rotate);
-		}else if(Math.abs(this.theta) < (this.alpha + Math.PI/2) - epsilon){
-			System.out.println("Theta < alpha-e: "+this.theta+" < "+(Math.PI/2 + this.alpha+this.epsilon));
+		}else if(Math.abs(this.theta) < Math.abs(f) - epsilon){
+			System.out.println("Theta < alpha-e: "+this.theta+" < "+(f+this.epsilon));
 			move(-rotate, +rotate);
-		}else{
+		} else {
 			System.out.println("Theta ~ alpha & Vitesse: "+(vitesse*100));
-			move(vitesse * 100, vitesse * 100);
-			//move(-speed, -speed);
-		}
+			move(100*vitesse, 100*vitesse);
+		} 
 	}
 	
 
@@ -436,18 +439,18 @@ public class PatternFormation extends Robot {
 	public void run() {
 		// Affectation de groupes aux robots
 		// boolean in = false;
-		// String[] names = {"epuck0", "epuck1", "epuck2", "epuck3", "epuck4"};//, "epuck5", "epuck6", "epuck7", "epuck8", "epuck9"};
+		// String[] names = {"epuck0", "epuck1", "epuck2"};//, "epuck3", "epuck4", "epuck5", "epuck6", "epuck7", "epuck8", "epuck9"};
 		// for(String name: names){
-		// 		if(this.getName() == name)
+		// 		if(name.equals(this.getName()))
 		// 			in = true;
 		// }
 		// if(in){
-		// 	this.alpha = Math.toRadians(0);
-		// } else{
-		// 	this.alpha = Math.toRadians(90);
+		// 	this.alpha = Math.toRadians(45);
+		// } else {
+		// 	this.alpha = Math.toRadians(-45);
 		// }
 		while (step(timeStep) != -1) {
-          		           System.out.println("Robot's name: " +this.getName()+"("+this.x+", "+this.y+")");
+          	System.out.println("Robot's name: " +this.getName()+"("+this.x+", "+this.y+")");
 			String message;
 			Boolean obstacle;
 			obstacle = checkAndAvoidObstacle();
